@@ -6,6 +6,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AlertsWatcher, CommandPalette, NotificationsSheet, ThemeController } from '@/components/layout/Overlays';
 import { AddBookSheet, EditBookSheet } from '@/components/books/AddBookSheet';
 import { ProgressSheet, TimerFinishSheet } from '@/components/books/ProgressSheet';
+import { ReflectionSheet } from '@/components/books/ReflectionSheet';
 import { Toaster } from '@/components/ui/Toast';
 import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
@@ -83,6 +84,7 @@ export default function App() {
             <EditBookSheet />
             <ProgressSheet />
             <TimerFinishSheet />
+            <ReflectionSheet />
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />

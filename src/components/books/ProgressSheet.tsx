@@ -8,34 +8,77 @@ import { BookCover } from './BookCover';
 import { useLibrary } from '@/store/useLibrary';
 import { useUI } from '@/store/useUI';
 import { toDayKey } from '@/lib/dates';
-import { percent, formatDuration } from '@/lib/utils';
+import { bookPercent, cn, percent, formatDuration } from '@/lib/utils';
+import { Segmented } from '@/components/ui/Segmented';
+import { promptReflection } from '@/lib/bookActions';
 import { sessionFormSchema, fieldErrors } from '@/lib/schemas';
 import type { Book } from '@/types';
 
-/** Formulaire commun : progression (page atteinte), durée, date. */
+type Mode = 'pages' | 'percent';
+
+const readMode = (): Mode => {
+  try {
+    return localStorage.getItem('livre-progress-mode') === 'percent' ? 'percent' : 'pages';
+  } catch {
+    return 'pages';
+  }
+};
+
+/** Formulaire commun : progression (en pages ou en %), durée, date. */
 function ProgressForm({ book, initialMinutes = 0, onDone, submitLabel = 'Enregistrer', header }: { book: Book; initialMinutes?: number; onDone: () => void; submitLabel?: string; header?: React.ReactNode }) {
-  const logSession = useLibrary((s) => s.logSession);
+  const { logSession, setPercent } = useLibrary.getState();
+  const hasPages = book.pageCount > 0;
+  const [mode, setModeState] = useState<Mode>(hasPages ? readMode() : 'percent');
   const [page, setPage] = useState(book.currentPage);
+  const [pct, setPct] = useState(bookPercent(book));
   const [minutes, setMinutes] = useState(String(initialMinutes || ''));
   const [date, setDate] = useState(toDayKey());
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const max = book.pageCount || 99999;
-  const pct = percent(page, book.pageCount);
-  const delta = page - book.currentPage;
+  const startPct = bookPercent(book);
+
+  const setMode = (m: Mode) => {
+    if (m === mode) return;
+    // Conversion entre les deux unités pour garder la même position.
+    if (m === 'percent') setPct(percent(page, book.pageCount));
+    else setPage(Math.round((pct / 100) * book.pageCount));
+    setModeState(m);
+    try {
+      localStorage.setItem('livre-progress-mode', m);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const isPct = mode === 'percent';
+  const max = isPct ? 100 : book.pageCount || 99999;
+  const value = isPct ? pct : page;
+  const setValue = (v: number) => {
+    const n = Math.max(0, Math.min(max, Math.round(v) || 0));
+    if (isPct) setPct(n);
+    else setPage(n);
+  };
+  const shownPct = isPct ? pct : percent(page, book.pageCount);
+  const delta = isPct ? pct - startPct : page - book.currentPage;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const parsed = sessionFormSchema.safeParse({ date, minutes: minutes || 0, toPage: page });
+    const parsed = sessionFormSchema.safeParse({ date, minutes: minutes || 0, toPage: isPct ? 0 : page });
     if (!parsed.success) return setErrors(fieldErrors(parsed.error));
-    if (book.pageCount && page > book.pageCount) return setErrors({ toPage: `Maximum ${book.pageCount} pages` });
+    if (!isPct && hasPages && page > book.pageCount) return setErrors({ toPage: `Maximum ${book.pageCount} pages` });
     const wasFinished = book.status === 'finished';
-    logSession({ bookId: book.id, date: parsed.data.date, minutes: parsed.data.minutes, toPage: parsed.data.toPage });
+    const opts = { minutes: parsed.data.minutes, date: parsed.data.date };
+    if (isPct) setPercent(book.id, pct, opts);
+    else logSession({ bookId: book.id, date: opts.date, minutes: opts.minutes, toPage: page });
     const now = useLibrary.getState().books.find((b) => b.id === book.id);
-    if (now?.status === 'finished' && !wasFinished) toast.success(`Bravo ! « ${book.title} » est terminé 🎉`);
-    else if (delta > 0) toast.success(`+${delta} pages enregistrées`, { description: parsed.data.minutes ? `${parsed.data.minutes} min de lecture` : undefined });
+    if (now?.status === 'finished' && !wasFinished) {
+      toast.success(`Bravo ! « ${book.title} » est terminé 🎉`);
+      promptReflection(book.id);
+    } else if (delta > 0) toast.success(isPct ? `${pct} % atteint (+${delta} %)` : `+${delta} pages enregistrées`, { description: opts.minutes ? `${opts.minutes} min de lecture` : undefined });
     else toast.success('Progression mise à jour');
     onDone();
   };
+
+  const chips = [5, 10, 25];
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
@@ -45,61 +88,67 @@ function ProgressForm({ book, initialMinutes = 0, onDone, submitLabel = 'Enregis
           <div className="min-w-0">
             <p className="truncate font-semibold">{book.title}</p>
             <p className="text-sm text-muted">
-              Actuellement p. {book.currentPage}
-              {book.pageCount ? ` / ${book.pageCount}` : ''}
+              {hasPages ? `Actuellement p. ${book.currentPage} / ${book.pageCount} · ` : 'Actuellement '}
+              {startPct} %
             </p>
           </div>
         </div>
       )}
 
+      {hasPages && (
+        <Segmented<Mode>
+          value={mode}
+          onChange={setMode}
+          className="w-full"
+          options={[
+            { value: 'pages', label: 'En pages' },
+            { value: 'percent', label: 'En pourcentage' },
+          ]}
+        />
+      )}
+
       <div className="rounded-3xl bg-surface-2 p-5 text-center">
-        <p className="label">Page atteinte</p>
+        <p className="label">{isPct ? 'Progression' : 'Page atteinte'}</p>
         <div className="mt-2 flex items-center justify-center gap-4">
-          <button type="button" aria-label="Page précédente" onClick={() => setPage((p) => Math.max(0, p - 1))} className="flex size-11 items-center justify-center rounded-full bg-surface shadow-card transition active:scale-90">
+          <button type="button" aria-label="Diminuer" onClick={() => setValue(value - 1)} className="flex size-11 items-center justify-center rounded-full bg-surface shadow-card transition active:scale-90">
             <Minus className="size-5" />
           </button>
-          <input
-            aria-label="Page atteinte"
-            type="number"
-            inputMode="numeric"
-            value={page}
-            min={0}
-            max={max}
-            onChange={(e) => setPage(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
-            className="h-display w-32 bg-transparent text-center text-5xl font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-          />
-          <button type="button" aria-label="Page suivante" onClick={() => setPage((p) => Math.min(max, p + 1))} className="flex size-11 items-center justify-center rounded-full bg-surface shadow-card transition active:scale-90">
+          <div className="flex items-baseline justify-center">
+            <input
+              aria-label={isPct ? 'Pourcentage lu' : 'Page atteinte'}
+              type="number"
+              inputMode="numeric"
+              value={value}
+              min={0}
+              max={max}
+              onChange={(e) => setValue(Number(e.target.value))}
+              className={cn('h-display bg-transparent text-center text-5xl font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none', isPct ? 'w-24' : 'w-32')}
+            />
+            {isPct && <span className="h-display text-3xl font-semibold text-muted">%</span>}
+          </div>
+          <button type="button" aria-label="Augmenter" onClick={() => setValue(value + 1)} className="flex size-11 items-center justify-center rounded-full bg-surface shadow-card transition active:scale-90">
             <Plus className="size-5" />
           </button>
         </div>
-        {book.pageCount > 0 && (
+        {(isPct || hasPages) && (
           <>
-            <input
-              type="range"
-              aria-label="Progression"
-              min={0}
-              max={book.pageCount}
-              value={page}
-              onChange={(e) => setPage(Number(e.target.value))}
-              className="mt-4 w-full accent-[rgb(var(--accent))]"
-            />
+            <input type="range" aria-label="Progression" min={0} max={max} value={value} onChange={(e) => setValue(Number(e.target.value))} className="mt-4 w-full accent-[rgb(var(--accent))]" />
             <p className="mt-1 text-sm text-muted">
-              {pct}% · {delta > 0 ? <span className="font-semibold text-accent">+{delta} pages</span> : delta < 0 ? <span>{delta} pages</span> : 'aucun changement'}
+              {isPct ? (hasPages ? `≈ page ${Math.round((pct / 100) * book.pageCount)} / ${book.pageCount}` : 'Livre sans nombre de pages') : `${shownPct} %`} ·{' '}
+              {delta > 0 ? <span className="font-semibold text-accent">+{delta}{isPct ? ' %' : ' pages'}</span> : delta < 0 ? <span>{delta}{isPct ? ' %' : ' pages'}</span> : 'aucun changement'}
             </p>
           </>
         )}
         {errors.toPage && <p className="mt-2 text-xs font-medium text-danger">{errors.toPage}</p>}
         <div className="mt-3 flex justify-center gap-2">
-          {[5, 10, 25].map((n) => (
-            <button key={n} type="button" onClick={() => setPage((p) => Math.min(max, p + n))} className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-ink-2 shadow-card transition active:scale-95">
-              +{n}
+          {chips.map((n) => (
+            <button key={n} type="button" onClick={() => setValue(value + n)} className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-ink-2 shadow-card transition active:scale-95">
+              +{n}{isPct ? ' %' : ''}
             </button>
           ))}
-          {book.pageCount > 0 && (
-            <button type="button" onClick={() => setPage(book.pageCount)} className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-accent shadow-card transition active:scale-95">
-              Fini
-            </button>
-          )}
+          <button type="button" onClick={() => setValue(max)} className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-accent shadow-card transition active:scale-95">
+            Fini
+          </button>
         </div>
       </div>
 

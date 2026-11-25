@@ -18,6 +18,7 @@ import { canScanNative, scanIsbnNative } from '@/lib/scanner';
 import { WebScanner } from './WebScanner';
 import { STATUS_META } from '@/lib/constants';
 import { normalize } from '@/lib/utils';
+import { promptReflection } from '@/lib/bookActions';
 
 type Mode = 'search' | 'manual';
 
@@ -142,6 +143,7 @@ export function AddBookSheet() {
     }
     const id = addBook(data);
     close();
+    promptReflection(id);
     toast.success(`« ${data.title} » ajouté`, {
       description: STATUS_META[data.status ?? 'toread'].label,
       action: { label: 'Voir', onClick: () => navigate(`/book/${id}`) },
@@ -287,6 +289,7 @@ export function EditBookSheet() {
             updateBook(book.id, data);
             close();
             toast.success('Modifications enregistrées');
+            if (book.status !== 'finished') promptReflection(book.id);
           }}
         />
       )}

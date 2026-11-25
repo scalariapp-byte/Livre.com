@@ -13,6 +13,7 @@ import { changeStatus } from '@/lib/bookActions';
 import { fmtMonth, fmtShort, relativeDay, isoToDayKey } from '@/lib/dates';
 import { formatMinutes, plural } from '@/lib/utils';
 import type { ReadingStatus } from '@/types';
+import { moodLabel } from '@/lib/reflection';
 
 const AddButton = ({ status, label = 'Ajouter' }: { status?: ReadingStatus; label?: string }) => {
   const open = useUI((s) => s.openAddBook);
@@ -240,6 +241,7 @@ export function FinishedPage() {
             <div className="mt-1.5 flex items-center gap-2">
               {b.rating ? <Rating value={b.rating} size={13} /> : <span className="text-2xs text-muted">Non noté</span>}
               {b.finishedAt && <span className="text-2xs text-muted">· Terminé le {fmtShort(b.finishedAt)}</span>}
+              {b.reflection?.moods.length ? <span className="text-sm leading-none">{b.reflection.moods.slice(0, 3).map((m) => moodLabel(m)?.emoji).join('')}</span> : null}
             </div>
           )}
           empty={<EmptyState icon={<BookCheck className="size-7" />} title="Aucun livre terminé" description="Quand vous finissez un livre, il rejoint automatiquement cet historique." />}

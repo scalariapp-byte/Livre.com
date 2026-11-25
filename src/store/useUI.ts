@@ -8,6 +8,7 @@ interface UIState {
   searchOpen: boolean;
   notificationsOpen: boolean;
   timerFinishOpen: boolean;
+  reflectionBookId: string | null;
   openAddBook: (status?: ReadingStatus) => void;
   closeAddBook: () => void;
   setEditBook: (id: string | null) => void;
@@ -15,6 +16,7 @@ interface UIState {
   setSearch: (open: boolean) => void;
   setNotifications: (open: boolean) => void;
   setTimerFinish: (open: boolean) => void;
+  setReflection: (id: string | null) => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -24,6 +26,7 @@ export const useUI = create<UIState>((set) => ({
   searchOpen: false,
   notificationsOpen: false,
   timerFinishOpen: false,
+  reflectionBookId: null,
   openAddBook: (status) => set({ addBook: { open: true, status } }),
   closeAddBook: () => set((s) => ({ addBook: { ...s.addBook, open: false } })),
   setEditBook: (id) => set({ editBookId: id }),
@@ -31,4 +34,5 @@ export const useUI = create<UIState>((set) => ({
   setSearch: (open) => set({ searchOpen: open }),
   setNotifications: (open) => set({ notificationsOpen: open }),
   setTimerFinish: (open) => set({ timerFinishOpen: open }),
+  setReflection: (id) => set({ reflectionBookId: id }),
 }));

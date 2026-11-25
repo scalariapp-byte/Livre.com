@@ -9,7 +9,7 @@ import { ProgressBar } from '@/components/ui/Progress';
 import { Rating } from '@/components/ui/Rating';
 import { Badge } from '@/components/ui/misc';
 import { STATUS_META } from '@/lib/constants';
-import { cn, percent } from '@/lib/utils';
+import { bookPercent, cn } from '@/lib/utils';
 
 function useOpenBook(id: string) {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ function useOpenBook(id: string) {
 /** Tuile de grille : couverture et métadonnées. */
 export function BookTile({ book, showStatus = false }: { book: Book; showStatus?: boolean }) {
   const open = useOpenBook(book.id);
-  const pct = percent(book.currentPage, book.pageCount);
+  const pct = bookPercent(book);
   return (
     <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="group cursor-pointer outline-none" {...open}>
       <div className="relative">
@@ -65,7 +65,7 @@ export function BookTile({ book, showStatus = false }: { book: Book; showStatus?
 /** Ligne de liste détaillée. */
 export function BookRow({ book, meta, trailing, className }: { book: Book; meta?: ReactNode; trailing?: ReactNode; className?: string }) {
   const open = useOpenBook(book.id);
-  const pct = percent(book.currentPage, book.pageCount);
+  const pct = bookPercent(book);
   return (
     <motion.div
       layout

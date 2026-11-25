@@ -9,6 +9,7 @@ import type {
   ReadingPlan,
   ReadingSession,
   ReadingStatus,
+  Reflection,
   Settings,
 } from '@/types';
 import { uid } from '@/lib/utils';
@@ -43,6 +44,9 @@ interface Actions {
   restoreBook: (snapshot: DeletedBookSnapshot) => void;
   setStatus: (id: string, status: ReadingStatus) => void;
   setProgress: (id: string, page: number, opts?: { minutes?: number; date?: string }) => void;
+  /** Progression en % : convertie en pages si le nombre de pages est connu. */
+  setPercent: (id: string, pct: number, opts?: { minutes?: number; date?: string }) => void;
+  saveReflection: (id: string, r: Omit<Reflection, 'createdAt' | 'updatedAt'>) => void;
   toggleFavorite: (id: string) => void;
 
   addNote: (bookId: string, text: string, page?: number) => void;
@@ -118,6 +122,7 @@ function applyStatus(book: Book, status: ReadingStatus): Book {
   if (status === 'toread' || status === 'wishlist') {
     next.startedAt = undefined;
     next.currentPage = 0;
+    next.percent = undefined;
   }
   return next;
 }
@@ -221,6 +226,33 @@ export const useLibrary = create<LibraryState>()(
           sessions: session ? [...s.sessions, session] : s.sessions,
         }));
       },
+
+      setPercent: (id, pct, opts) => {
+        const prev = get().books.find((b) => b.id === id);
+        if (!prev) return;
+        const value = Math.max(0, Math.min(100, Math.round(pct)));
+        if (prev.pageCount > 0) return get().setProgress(id, Math.round((value / 100) * prev.pageCount), opts);
+        let next: Book = { ...prev, percent: value, updatedAt: now() };
+        if (value >= 100) next = applyStatus(next, 'finished');
+        else if (prev.status === 'finished') next = applyStatus(next, 'reading');
+        else if (prev.status !== 'reading' && value > 0) next = applyStatus(next, 'reading');
+        next.percent = value;
+        // Sans nombre de pages, seule la durée peut alimenter les statistiques.
+        const session = progressSession(id, 0, 0, opts?.date ?? toDayKey(), opts?.minutes);
+        set((s) => ({
+          books: s.books.map((b) => (b.id === id ? next : b)),
+          sessions: session ? [...s.sessions, session] : s.sessions,
+        }));
+      },
+
+      saveReflection: (id, r) =>
+        set((s) => ({
+          books: s.books.map((b) =>
+            b.id === id
+              ? { ...b, reflection: { ...r, createdAt: b.reflection?.createdAt ?? now(), updatedAt: now() }, updatedAt: now() }
+              : b,
+          ),
+        })),
 
       toggleFavorite: (id) =>
         set((s) => ({ books: s.books.map((b) => (b.id === id ? { ...b, favorite: !b.favorite, updatedAt: now() } : b)) })),

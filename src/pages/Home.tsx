@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { BarChart } from '@/components/charts/Charts';
 import { dayTotals, estimateRemaining, finishedInYear, lastNDays, readingSpeed, readingStreak } from '@/lib/stats';
 import { diffDays, fmtWeekday, fromDayKey, greeting, relativeDay, toDayKey } from '@/lib/dates';
-import { cn, formatMinutes, percent, plural } from '@/lib/utils';
+import { bookPercent, cn, formatMinutes, percent, plural } from '@/lib/utils';
 import type { Book } from '@/types';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -59,7 +59,7 @@ function CurrentlyReading({ books, speed }: { books: Book[]; speed: number | nul
       </Card>
     );
   const [main, ...others] = books;
-  const pct = percent(main.currentPage, main.pageCount);
+  const pct = bookPercent(main);
   const remaining = estimateRemaining(main, speed);
   return (
     <Card className="overflow-hidden lg:col-span-2" title="En cours de lecture" icon={<BookOpen />} to="/library?status=reading">
@@ -76,8 +76,14 @@ function CurrentlyReading({ books, speed }: { books: Book[]; speed: number | nul
           <div className="mt-auto pt-4">
             <div className="mb-2 flex items-baseline justify-between text-sm">
               <span className="font-semibold tabular-nums">
-                {main.currentPage}
-                <span className="font-normal text-muted"> / {main.pageCount || '?'} pages</span>
+                {main.pageCount ? (
+                  <>
+                    {main.currentPage}
+                    <span className="font-normal text-muted"> / {main.pageCount} pages</span>
+                  </>
+                ) : (
+                  <span className="font-normal text-muted">Progression</span>
+                )}
               </span>
               <span className="h-display text-lg font-semibold tabular-nums text-accent">{pct}%</span>
             </div>
@@ -97,7 +103,7 @@ function CurrentlyReading({ books, speed }: { books: Book[]; speed: number | nul
       {others.length > 0 && (
         <div className="mt-5 grid gap-2 border-t border-line/70 pt-4 sm:grid-cols-2">
           {others.slice(0, 4).map((b) => {
-            const p = percent(b.currentPage, b.pageCount);
+            const p = bookPercent(b);
             return (
               <button key={b.id} type="button" onClick={() => navigate(`/book/${b.id}`)} className="flex items-center gap-3 rounded-2xl p-2 text-left transition hover:bg-surface-2">
                 <BookCover title={b.title} src={b.coverUrl} size="xs" className="!w-10" />

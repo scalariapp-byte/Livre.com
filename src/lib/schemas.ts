@@ -107,6 +107,20 @@ const bookSchema = z.object({
   language: optStr,
   status,
   currentPage: z.number().default(0),
+  percent: z.number().optional(),
+  reflection: z
+    .object({
+      moods: z.array(z.string()).default([]),
+      ending: z.enum(['loved', 'mixed', 'disliked']).optional(),
+      pace: z.enum(['slow', 'balanced', 'fast']).optional(),
+      recommend: z.enum(['yes', 'maybe', 'no']).optional(),
+      reread: z.boolean().optional(),
+      answers: z.record(z.string()).default({}),
+      summary: optStr,
+      createdAt: z.string(),
+      updatedAt: z.string(),
+    })
+    .optional(),
   rating: z.number().optional(),
   review: optStr,
   notes: z

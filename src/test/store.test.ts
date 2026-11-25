@@ -126,3 +126,29 @@ describe('alertes', () => {
     expect(alerts.map((a) => a.kind)).toEqual(['loan-overdue', 'loan-due']);
   });
 });
+
+describe('progression en % et bilan', () => {
+  it('convertit un pourcentage en pages quand le total est connu', () => {
+    const id = st().addBook({ title: 'P', pageCount: 400, status: 'reading' });
+    st().setPercent(id, 25, { minutes: 20 });
+    expect(st().books[0].currentPage).toBe(100);
+    expect(st().sessions[0]).toMatchObject({ pagesRead: 100, minutes: 20 });
+  });
+  it('suit un livre sans nombre de pages en % et le termine à 100 %', () => {
+    const id = st().addBook({ title: 'Liseuse', status: 'toread' });
+    st().setPercent(id, 40, { minutes: 15 });
+    let b = st().books[0];
+    expect(b.status).toBe('reading');
+    expect(b.percent).toBe(40);
+    expect(st().sessions[0]).toMatchObject({ pagesRead: 0, minutes: 15 });
+    st().setPercent(id, 100);
+    b = st().books[0];
+    expect(b.status).toBe('finished');
+  });
+  it('enregistre un bilan et le conserve à l’export', () => {
+    const id = st().addBook({ title: 'Fini', pageCount: 100, status: 'finished' });
+    st().saveReflection(id, { moods: ['moved'], ending: 'loved', answers: { favorite: 'Le style' }, summary: 'Superbe' });
+    const backup = backupSchema.parse(JSON.parse(JSON.stringify(st().exportBackup())));
+    expect(backup.data.books[0].reflection).toMatchObject({ moods: ['moved'], ending: 'loved', answers: { favorite: 'Le style' } });
+  });
+});

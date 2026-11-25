@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, BookOpen, Calendar, CheckCircle2, Clock, ExternalLink, Heart, NotebookPen, Pencil, Repeat2, Timer, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, MessageSquareHeart, Calendar, CheckCircle2, Clock, ExternalLink, Heart, NotebookPen, Pencil, Repeat2, Timer, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLibrary } from '@/store/useLibrary';
@@ -17,7 +17,8 @@ import { STATUS_META, STATUS_ORDER } from '@/lib/constants';
 import { changeStatus } from '@/lib/bookActions';
 import { estimateRemaining, readingSpeed } from '@/lib/stats';
 import { fmtDate, fmtShort, relativeDay } from '@/lib/dates';
-import { cn, formatMinutes, percent } from '@/lib/utils';
+import { bookPercent, cn, formatMinutes } from '@/lib/utils';
+import { ENDINGS, PACES, RECOMMENDS, moodLabel, questionsFor } from '@/lib/reflection';
 
 export function BookDetail() {
   const { id } = useParams();
@@ -29,6 +30,7 @@ export function BookDetail() {
   const { updateBook, toggleFavorite, addNote, deleteNote, startTimer, deleteSession } = useLibrary.getState();
   const setProgress = useUI((s) => s.setProgressBook);
   const setEdit = useUI((s) => s.setEditBook);
+  const setReflection = useUI((s) => s.setReflection);
 
   const sessions = useMemo(() => allSessions.filter((s) => s.bookId === id).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)), [allSessions, id]);
   const speed = useMemo(() => readingSpeed(allSessions), [allSessions]);
@@ -50,7 +52,7 @@ export function BookDetail() {
       />
     );
 
-  const pct = percent(book.currentPage, book.pageCount);
+  const pct = bookPercent(book);
   const totalMin = sessions.reduce((s, x) => s + x.minutes, 0);
   const remaining = book.status === 'reading' ? estimateRemaining(book, speed) : null;
   const bookLoans = loans.filter((l) => l.bookId === book.id);
@@ -156,10 +158,14 @@ export function BookDetail() {
               <div className="mb-3 flex items-end justify-between">
                 <div>
                   <p className="label">Progression</p>
-                  <p className="mt-1 text-sm">
-                    <span className="h-display text-3xl font-semibold tabular-nums">{book.currentPage}</span>
-                    <span className="text-muted"> / {book.pageCount || '?'} pages</span>
-                  </p>
+                  {book.pageCount ? (
+                    <p className="mt-1 text-sm">
+                      <span className="h-display text-3xl font-semibold tabular-nums">{book.currentPage}</span>
+                      <span className="text-muted"> / {book.pageCount} pages</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-muted">Suivi en pourcentage</p>
+                  )}
                 </div>
                 <p className="h-display text-3xl font-semibold tabular-nums text-accent">{pct}%</p>
               </div>
@@ -211,7 +217,82 @@ export function BookDetail() {
             </section>
           )}
 
+          {/* Bilan de lecture */}
+          {book.status === 'finished' && !book.reflection && (
+            <section className="card flex flex-col items-start gap-3 overflow-hidden p-5 sm:flex-row sm:items-center">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-accent/12 text-accent">
+                <MessageSquareHeart className="size-5" />
+              </span>
+              <div className="flex-1">
+                <p className="font-semibold">Qu’avez-vous pensé de ce livre ?</p>
+                <p className="text-sm text-muted">Ressentis, fin, personnages… gardez une trace de votre lecture.</p>
+              </div>
+              <Button onClick={() => setReflection(book.id)}>Faire mon bilan</Button>
+            </section>
+          )}
+          {book.reflection && (
+            <section className="card p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="label">Mon bilan</p>
+                <button type="button" onClick={() => setReflection(book.id)} className="text-xs font-semibold text-accent">
+                  Modifier
+                </button>
+              </div>
+              {book.reflection.summary && (
+                <blockquote className="h-display mb-4 border-l-[3px] border-accent/60 pl-4 text-[19px] italic leading-snug text-ink-2">« {book.reflection.summary} »</blockquote>
+              )}
+              {book.reflection.moods.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {book.reflection.moods.map((m) => {
+                    const mood = moodLabel(m);
+                    return mood ? (
+                      <span key={m} className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-medium">
+                        <span>{mood.emoji}</span>
+                        {mood.label}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              {(() => {
+                const r = book.reflection!;
+                const facts = [
+                  r.ending && { k: 'La fin', v: ENDINGS.find((x) => x.id === r.ending)?.label },
+                  r.pace && { k: 'Rythme', v: PACES.find((x) => x.id === r.pace)?.label },
+                  r.recommend && { k: 'Je le recommande', v: RECOMMENDS.find((x) => x.id === r.recommend)?.label },
+                  r.reread !== undefined && { k: 'À relire', v: r.reread ? 'Oui' : 'Non' },
+                ].filter(Boolean) as { k: string; v?: string }[];
+                const qa = questionsFor(book).filter((q) => r.answers[q.id]);
+                return (
+                  <>
+                    {facts.length > 0 && (
+                      <dl className="mb-4 grid grid-cols-2 gap-3 rounded-2xl bg-surface-2/60 p-3.5">
+                        {facts.map((f) => (
+                          <div key={f.k}>
+                            <dt className="text-2xs text-muted">{f.k}</dt>
+                            <dd className="text-sm font-semibold">{f.v}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                    {qa.length > 0 && (
+                      <div className="space-y-3.5">
+                        {qa.map((q) => (
+                          <div key={q.id}>
+                            <p className="text-[13px] font-semibold text-muted">{q.label}</p>
+                            <p className="mt-0.5 whitespace-pre-line text-[15px] leading-relaxed">{r.answers[q.id]}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </section>
+          )}
+
           {/* Avis personnel */}
+          {!book.reflection && (
           <section className="card p-5">
             <p className="label mb-2">Mon avis</p>
             <Textarea value={review} onChange={(e) => setReview(e.target.value)} onBlur={saveReview} placeholder="Ce que vous avez pensé de ce livre…" className="min-h-[90px]" maxLength={5000} />
@@ -223,6 +304,7 @@ export function BookDetail() {
               </div>
             )}
           </section>
+          )}
 
           {/* Notes */}
           <section className="card p-5">

@@ -3,6 +3,14 @@ import { toast } from '@/components/ui/Toast';
 import { confirm } from '@/components/ui/Confirm';
 import { STATUS_META } from './constants';
 import type { ReadingStatus } from '@/types';
+import { useUI } from '@/store/useUI';
+
+/** Ouvre le bilan de lecture après un passage à « Terminé » (si aucun bilan n'existe encore). */
+export function promptReflection(bookId: string) {
+  const book = useLibrary.getState().books.find((b) => b.id === bookId);
+  if (!book || book.status !== 'finished' || book.reflection) return;
+  setTimeout(() => useUI.getState().setReflection(bookId), 450);
+}
 
 /** Supprime un livre après confirmation, avec possibilité d'annuler. */
 export async function deleteBookWithUndo(id: string): Promise<boolean> {
@@ -35,6 +43,7 @@ export function changeStatus(id: string, status: ReadingStatus) {
   const sessionsBefore = s.sessions.length;
   s.setStatus(id, status);
   const added = useLibrary.getState().sessions.slice(sessionsBefore).map((x) => x.id);
+  if (status === 'finished') promptReflection(id);
   const msg = status === 'finished' ? `Bravo ! « ${book.title} » est terminé 🎉` : `Déplacé vers « ${STATUS_META[status].label} »`;
   toast.success(msg, {
     action: {

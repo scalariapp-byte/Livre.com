@@ -60,3 +60,10 @@ export function percent(current: number, total: number) {
   if (!total || total <= 0) return 0;
   return clamp(Math.round((current / total) * 100), 0, 100);
 }
+
+/** Progression d'un livre en % : par les pages si connues, sinon le pourcentage saisi. */
+export function bookPercent(b: { status: string; currentPage: number; pageCount: number; percent?: number }) {
+  if (b.status === 'finished') return 100;
+  if (b.pageCount > 0) return percent(b.currentPage, b.pageCount);
+  return clamp(Math.round(b.percent ?? 0), 0, 100);
+}

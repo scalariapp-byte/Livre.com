@@ -13,6 +13,7 @@ import { useLibrary } from '@/store/useLibrary';
 import { bestStreak, finishedInYear, genreDistribution, goalPace, monthlySeries, readingSpeed, readingStreak, totalsByDay } from '@/lib/stats';
 import { fmtMonthShort } from '@/lib/dates';
 import { CHART_COLORS } from '@/lib/constants';
+import { MOODS } from '@/lib/reflection';
 import { cn, formatMinutes, percent } from '@/lib/utils';
 
 type Metric = 'books' | 'pages' | 'minutes';
@@ -100,6 +101,7 @@ export function StatsPage() {
       longest,
       activeDays,
       heat: new Map([...totalsByDay(sessions)].map(([k, v]) => [k, v.pages])),
+      reflected: finished.filter((b) => b.reflection),
     };
   }, [books, sessions, year]);
 
@@ -279,6 +281,46 @@ export function StatsPage() {
             </div>
           </section>
         </div>
+        {/* Ressentis issus des bilans de lecture */}
+        <section className="card p-5">
+          <h2 className="h-display mb-1 text-lg font-semibold">Vos ressentis</h2>
+          {s.reflected.length ? (
+            (() => {
+              const counts = MOODS.map((m) => ({ ...m, n: s.reflected.filter((b) => b.reflection!.moods.includes(m.id)).length }))
+                .filter((m) => m.n)
+                .sort((a, b) => b.n - a.n);
+              const max = Math.max(1, ...counts.map((c) => c.n));
+              const rec = s.reflected.filter((b) => b.reflection!.recommend);
+              const yes = rec.filter((b) => b.reflection!.recommend === 'yes').length;
+              return (
+                <>
+                  <p className="mb-5 text-[13px] text-muted">
+                    D’après {s.reflected.length} bilan{s.reflected.length > 1 ? 's' : ''} de lecture
+                    {rec.length ? ` · ${Math.round((yes / rec.length) * 100)} % de livres que vous recommandez sans hésiter` : ''}
+                  </p>
+                  {counts.length ? (
+                    <ul className="space-y-2.5">
+                      {counts.slice(0, 6).map((c) => (
+                        <li key={c.id} className="flex items-center gap-3 text-sm">
+                          <span className="w-7 text-center text-lg">{c.emoji}</span>
+                          <span className="w-32 shrink-0 truncate">{c.label}</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                            <div className="h-full rounded-full bg-accent" style={{ width: `${(c.n / max) * 100}%` }} />
+                          </div>
+                          <span className="w-6 text-right tabular-nums text-muted">{c.n}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted">Aucun ressenti renseigné dans vos bilans.</p>
+                  )}
+                </>
+              );
+            })()
+          ) : (
+            <p className="py-4 text-sm text-muted">Quand vous terminez un livre, faites son bilan : vos émotions de lecture apparaîtront ici.</p>
+          )}
+        </section>
       </PageBody>
       <GoalsSheet key={String(goalsOpen)} open={goalsOpen} onClose={() => setGoalsOpen(false)} />
     </>

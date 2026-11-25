@@ -7,6 +7,25 @@ export interface BookNote {
   createdAt: string;
 }
 
+export type Ending = 'loved' | 'mixed' | 'disliked';
+export type Pace = 'slow' | 'balanced' | 'fast';
+export type Recommend = 'yes' | 'maybe' | 'no';
+
+/** Bilan rempli après la lecture. */
+export interface Reflection {
+  moods: string[];
+  ending?: Ending;
+  pace?: Pace;
+  recommend?: Recommend;
+  reread?: boolean;
+  /** Réponses aux questions sur le livre (identifiant de question → texte). */
+  answers: Record<string, string>;
+  /** Ressenti général en quelques mots. */
+  summary?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -22,6 +41,10 @@ export interface Book {
   language?: string;
   status: ReadingStatus;
   currentPage: number;
+  /** Progression en % pour les livres sans nombre de pages (liseuse, livre audio). */
+  percent?: number;
+  /** Bilan de lecture. */
+  reflection?: Reflection;
   /** Note personnelle de 0 à 5 (demi-points autorisés). */
   rating?: number;
   review?: string;
