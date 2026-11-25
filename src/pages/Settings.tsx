@@ -1,4 +1,4 @@
-import { Bell, Camera, Database, Download, Moon, Monitor, Palette, ShieldCheck, Sparkles, Sun, Target, Trash2, Upload, User } from 'lucide-react';
+import { Bell, Camera, RefreshCw, Smartphone, Database, Download, Moon, Monitor, Palette, ShieldCheck, Sparkles, Sun, Target, Trash2, Upload, User } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PageBody, PageHeader } from '@/components/layout/PageHeader';
 import { Avatar, Switch } from '@/components/ui/misc';
@@ -16,6 +16,8 @@ import { buildDemoData } from '@/lib/demo';
 import { cn, formatMinutes } from '@/lib/utils';
 import { isNative, saveFile } from '@/lib/platform';
 import { GoalsSheet } from './Stats';
+import { APP_VERSION, checkForUpdate, openUpdate } from '@/lib/updates';
+import { useUpdate } from '@/components/UpdateChecker';
 import type { Accent, ThemeMode } from '@/types';
 
 function Group({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
@@ -54,6 +56,8 @@ export function SettingsPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [pending, setPending] = useState<Backup | null>(null);
   const [usage, setUsage] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const showUpdate = useUpdate((s) => s.show);
   const avatarRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -121,6 +125,19 @@ export function SettingsPage() {
   };
 
   const totalMinutes = sessions.reduce((a, s) => a + s.minutes, 0);
+
+  const checkUpdate = async () => {
+    setChecking(true);
+    try {
+      const u = await checkForUpdate();
+      if (u) showUpdate(u);
+      else toast.success('Vous avez la dernière version', { description: `Version ${APP_VERSION}` });
+    } catch (e) {
+      toast.error('Vérification impossible', { description: (e as Error).message || 'Vérifiez votre connexion.' });
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
     <>
@@ -232,13 +249,32 @@ export function SettingsPage() {
           </Row>
         </Group>
 
+        <Group title="Application" icon={<Smartphone />}>
+          {isNative() ? (
+            <Row title="Mise à jour" description={`Version installée : ${APP_VERSION}`} onClick={checking ? undefined : checkUpdate}>
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-accent">
+                <RefreshCw className={cn('size-4', checking && 'animate-spin')} />
+                {checking ? 'Vérification…' : 'Rechercher'}
+              </span>
+            </Row>
+          ) : (
+            <Row
+              title="Application Android"
+              description="Installez Livre sur votre téléphone Android. La version web se met à jour toute seule."
+              onClick={() => openUpdate({ build: 0, version: '', apkUrl: 'https://github.com/scalariapp-byte/Livre.com/releases/latest/download/Livre.apk', pageUrl: '', publishedAt: '' })}
+            >
+              <Download className="size-5 text-muted" />
+            </Row>
+          )}
+        </Group>
+
         <div className="flex items-start gap-3 rounded-2xl bg-surface-2/70 p-4 text-[13px] leading-relaxed text-muted">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" />
           <p>
             Vos données restent sur cet appareil (stockage local du navigateur). Rien n'est envoyé à un serveur, à l'exception des recherches de livres transmises à Google Books / Open Library. Exportez régulièrement une sauvegarde pour la transférer sur un autre appareil.
           </p>
         </div>
-        <p className="pb-4 text-center text-xs text-muted">Livre · version 1.0</p>
+        <p className="pb-4 text-center text-xs text-muted">Livre · version {APP_VERSION}</p>
       </PageBody>
 
       <GoalsSheet key={String(goalsOpen)} open={goalsOpen} onClose={() => setGoalsOpen(false)} />

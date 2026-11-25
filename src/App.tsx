@@ -11,6 +11,7 @@ import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
 import { LogoMark } from '@/components/layout/Logo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { UpdateChecker } from '@/components/UpdateChecker';
 import { Home } from '@/pages/Home';
 import { Onboarding } from '@/pages/Onboarding';
 
@@ -85,6 +86,7 @@ export default function App() {
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />
+            <UpdateChecker />
           </BrowserRouter>
         )}
         <ConfirmHost />

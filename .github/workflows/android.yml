@@ -31,6 +31,8 @@ jobs:
         run: npm test
 
       - name: Build web
+        env:
+          VITE_APP_BUILD: ${{ github.run_number }}
         run: npm run build
 
       - name: Synchronisation Capacitor
