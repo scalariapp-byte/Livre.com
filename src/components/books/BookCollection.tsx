@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'framer-motion';
-import { ArrowDownUp, BookCopy, Check, Layers, LayoutGrid, Library, List, Search, X } from 'lucide-react';
+import { ArrowDownUp, BookCopy, Check, Hand, Layers, LayoutGrid, Library, List, Search, X } from 'lucide-react';
 import { ShelfView } from './ShelfView';
 import { SpineView } from './SpineView';
 import { useLibrary } from '@/store/useLibrary';
@@ -24,9 +24,10 @@ const GROUP_LABELS: Record<GroupKey, string> = {
   status: 'Par statut',
 };
 
-export type SortKey = 'added' | 'title' | 'author' | 'rating' | 'progress' | 'finished' | 'priority' | 'pages';
+export type SortKey = 'manual' | 'added' | 'title' | 'author' | 'rating' | 'progress' | 'finished' | 'priority' | 'pages';
 
 const SORT_LABELS: Record<SortKey, string> = {
+  manual: 'Mon rangement',
   added: "Date d'ajout",
   title: 'Titre',
   author: 'Auteur',
@@ -38,6 +39,7 @@ const SORT_LABELS: Record<SortKey, string> = {
 };
 
 const sorters: Record<SortKey, (a: Book, b: Book) => number> = {
+  manual: (a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) || b.addedAt.localeCompare(a.addedAt),
   added: (a, b) => b.addedAt.localeCompare(a.addedAt),
   title: (a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }),
   author: (a, b) => (a.authors[0] ?? '~').localeCompare(b.authors[0] ?? '~', 'fr', { sensitivity: 'base' }),
@@ -81,7 +83,10 @@ interface Props {
   showStatus?: boolean;
 }
 
-export function BookCollection({ books, storageKey, sorts, defaultSort, empty, toolbarExtra, groupBy, groupable, renderMeta, renderTrailing, showStatus }: Props) {
+export function BookCollection({ books, storageKey, sorts: sortsProp, defaultSort, empty, toolbarExtra, groupBy, groupable, renderMeta, renderTrailing, showStatus }: Props) {
+  const sorts: SortKey[] = sortsProp.includes('manual') ? sortsProp : ['manual', ...sortsProp];
+  const [arranging, setArranging] = useState(false);
+  const setOrder = useLibrary((s) => s.setOrder);
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('all');
   const [sort, setSort] = useStoredState<SortKey>(`livre-sort-${storageKey}`, defaultSort);
@@ -159,6 +164,22 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
           )}
         </div>
         {toolbarExtra}
+        {view === 'spines' && (
+          <IconButton
+            label={arranging ? 'Terminer le rangement' : 'Ranger mes livres'}
+            variant={arranging ? 'primary' : 'outline'}
+            onClick={() => {
+              if (!arranging && sort !== 'manual') {
+                // On part de l'ordre affiché pour que rien ne bouge au passage en mode rangement.
+                setOrder(groups.flatMap((g) => g.items.map((b) => b.id)));
+                setSort('manual');
+              }
+              setArranging((a) => !a);
+            }}
+          >
+            <Hand className="size-[18px]" />
+          </IconButton>
+        )}
         {groupable && (
           <Menu
             items={(Object.keys(GROUP_LABELS) as GroupKey[]).map((g) => ({ label: GROUP_LABELS[g], icon: g === group ? <Check /> : <span className="inline-block size-4" />, active: g === group, onSelect: () => setGroup(g) }))}
@@ -198,6 +219,16 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
         </div>
       )}
 
+      {arranging && view === 'spines' && (
+        <div className="mb-4 flex items-center gap-3 rounded-2xl bg-accent/10 p-3 text-sm text-ink-2">
+          <Hand className="size-5 shrink-0 text-accent" />
+          <p className="flex-1">Faites glisser les tranches pour ranger vos livres comme vous voulez. Chaque livre reste dans son rayon.</p>
+          <button type="button" onClick={() => setArranging(false)} className="shrink-0 rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink">
+            Terminé
+          </button>
+        </div>
+      )}
+
       <p className="mb-3 text-[13px] text-muted">
         {filtered.length} livre{filtered.length > 1 ? 's' : ''}
         {groupable && group !== 'none' ? ` · ${GROUP_LABELS[group].toLowerCase()}` : ''} · trié par {SORT_LABELS[sorts.includes(sort) ? sort : defaultSort].toLowerCase()}
@@ -219,7 +250,7 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
         </div>
       ) : (
         view === 'spines' && groups.length > 1 ? (
-          <SpineView sections={groups} />
+          <SpineView sections={groups} editable={arranging} onReorder={setOrder} />
         ) : (
         groups.map((g) => (
           <section key={g.key} className={cn(g.key && 'mb-8')}>
@@ -229,7 +260,7 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
               </h3>
             )}
             {view === 'spines' ? (
-              <SpineView books={g.items} />
+              <SpineView books={g.items} editable={arranging} onReorder={setOrder} />
             ) : view === 'shelf' ? (
               <ShelfView books={g.items} />
             ) : view === 'grid' ? (

@@ -39,6 +39,8 @@ export interface Book {
   coverChecked?: boolean;
   /** Couleur de tranche extraite de la couverture, et couverture analysée. */
   spineColor?: string;
+  /** Position choisie par l'utilisateur sur l'étagère (tri « Mon rangement »). */
+  order?: number;
   spineFor?: string;
   isbn?: string;
   publisher?: string;

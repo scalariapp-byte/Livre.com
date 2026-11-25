@@ -43,6 +43,8 @@ interface Actions {
   updateBook: (id: string, patch: Partial<Book>) => void;
   /** Mise à jour technique (couverture, couleur) sans changer la date de modification. */
   patchBook: (id: string, patch: Partial<Book>) => void;
+  /** Enregistre l'ordre de rangement (ids dans l'ordre voulu). */
+  setOrder: (ids: string[]) => void;
   deleteBook: (id: string) => void;
   restoreBook: (snapshot: DeletedBookSnapshot) => void;
   setStatus: (id: string, status: ReadingStatus) => void;
@@ -191,6 +193,11 @@ export const useLibrary = create<LibraryState>()(
       },
 
       patchBook: (id, patch) => set((s) => ({ books: s.books.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
+
+      setOrder: (ids) => {
+        const pos = new Map(ids.map((id, i) => [id, i]));
+        set((s) => ({ books: s.books.map((b) => (pos.has(b.id) ? { ...b, order: pos.get(b.id) } : b)) }));
+      },
 
       deleteBook: (id) =>
         set((s) => ({
