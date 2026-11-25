@@ -294,8 +294,8 @@ export function LoansPage() {
         title="Prêts & emprunts"
         subtitle={active.length ? `${active.length} en cours${late ? ` · ${late} en retard` : ''}` : 'Ne perdez plus jamais la trace de vos livres'}
         actions={
-          <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)} className="hidden sm:inline-flex">
-            Nouveau prêt
+          <Button icon={<Plus className="size-4" />} size="sm" onClick={() => setCreating(true)} aria-label="Nouveau prêt">
+            <span className="hidden sm:inline">Nouveau prêt</span>
           </Button>
         }
       />
@@ -332,14 +332,6 @@ export function LoansPage() {
             </AnimatePresence>
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-20 flex size-12 items-center justify-center rounded-2xl bg-ink text-bg shadow-lift transition active:scale-90 sm:hidden"
-          aria-label="Nouveau prêt"
-        >
-          <Plus className="size-6" />
-        </button>
       </PageBody>
       <Sheet open={creating || !!editing} onClose={() => {
           setCreating(false);

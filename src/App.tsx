@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
 import { useLibrary } from '@/store/useLibrary';
@@ -63,9 +63,8 @@ export default function App() {
           <Onboarding />
         ) : (
           <BrowserRouter>
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route element={<AppShell />}>
+            <Routes>
+                <Route element={<AppShell fallback={<PageFallback />} />}>
                   <Route index element={<Home />} />
                   <Route path="library" element={<LibraryPage />} />
                   <Route path="to-read" element={<ToReadPage />} />
@@ -79,7 +78,6 @@ export default function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
               </Routes>
-            </Suspense>
             <AddBookSheet />
             <EditBookSheet />
             <ProgressSheet />

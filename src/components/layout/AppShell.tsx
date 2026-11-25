@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, MoreHorizontal, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Suspense, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { NAV } from './nav';
 import { cn } from '@/lib/utils';
@@ -153,7 +153,7 @@ function BottomNav() {
   );
 }
 
-export function AppShell() {
+export function AppShell({ fallback }: { fallback?: ReactNode }) {
   const location = useLocation();
   return (
     <div className="flex min-h-dvh">
@@ -167,7 +167,11 @@ export function AppShell() {
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
           >
-            <Outlet />
+            {/* Suspense ici (et non au-dessus du shell) : la navigation et les feuilles ouvertes
+                restent montées pendant le chargement d'une page, sinon leurs animations de fermeture se bloquent. */}
+            <Suspense fallback={fallback}>
+              <Outlet />
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
