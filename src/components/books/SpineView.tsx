@@ -8,8 +8,9 @@ import { shade, spineInk } from '@/lib/spineColor';
 /** Couleur de repli tant que la vraie couleur n'est pas connue (stable pour un titre). */
 const FALLBACK = ['#2B3A55', '#5C3D2E', '#1F4E4A', '#6B2D3C', '#2E2A4F', '#3D4A2A', '#7A4A1E', '#203A43', '#8C4A5A', '#4A5D7A'];
 
-const spineWidth = (b: Book) => Math.round(Math.min(58, Math.max(24, 18 + (b.pageCount || 300) / 16)));
-const spineHeight = (b: Book) => 82 + (hashString(b.id) % 19); // 82 à 100 % de la hauteur
+/** Toutes les tranches ont la même taille, comme une collection bien rangée. */
+const SPINE_W = 42;
+const spineWidth = (_b: Book) => SPINE_W;
 
 const SHELF_H = 168;
 const GAP = 3;
@@ -98,7 +99,7 @@ export function SpineView({ books, sections }: { books?: Book[]; sections?: { ke
                       className="relative flex shrink-0 flex-col items-center justify-between overflow-hidden rounded-[3px] py-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       style={{
                         width: w,
-                        height: `${spineHeight(b)}%`,
+                        height: '100%',
                         color: ink,
                         background: `linear-gradient(90deg, ${shade(bg, -0.35)} 0%, ${shade(bg, 0.12)} 18%, ${bg} 45%, ${shade(bg, -0.08)} 80%, ${shade(bg, -0.4)} 100%)`,
                         boxShadow: '1px 0 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
@@ -108,11 +109,11 @@ export function SpineView({ books, sections }: { books?: Book[]; sections?: { ke
                       <span className="block h-[3px] w-full opacity-40" style={{ background: ink }} />
                       <span
                         className="h-display min-h-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-1.5 font-semibold leading-none"
-                        style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: w < 30 ? 11 : 13 }}
+                        style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: b.title.length > 28 ? 11.5 : 13.5 }}
                       >
                         {b.title}
                       </span>
-                      <span className="max-w-full truncate px-0.5 text-[8px] font-semibold uppercase tracking-wide opacity-80">{(b.authors[0] ?? '').split(' ').pop()?.slice(0, 6)}</span>
+                      <span className="max-w-full truncate px-0.5 text-[8px] font-semibold uppercase tracking-wide opacity-80">{(b.authors[0] ?? '').split(' ').pop()?.slice(0, 7)}</span>
                       <span className="mt-1 block h-[3px] w-full opacity-40" style={{ background: ink }} />
                       {b.status === 'reading' && <span className="absolute left-0 top-0 h-full w-[3px] bg-accent" title="En cours" />}
                       {b.favorite && <span className="absolute right-0.5 top-1.5 text-[8px]">❤️</span>}

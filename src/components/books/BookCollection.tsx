@@ -85,7 +85,7 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('all');
   const [sort, setSort] = useStoredState<SortKey>(`livre-sort-${storageKey}`, defaultSort);
-  const [view, setView] = useStoredState<'grid' | 'list' | 'shelf' | 'spines'>(`livre-view-${storageKey}`, groupable ? 'spines' : 'grid');
+  const [view, setView] = useStoredState<'grid' | 'list' | 'shelf' | 'spines'>(`livre-view2-${storageKey}`, groupable ? 'spines' : 'grid');
   const [group, setGroup] = useStoredState<GroupKey>(`livre-group-${storageKey}`, groupable ? 'genre' : 'none');
   const shelves = useLibrary((s) => s.shelves);
 
