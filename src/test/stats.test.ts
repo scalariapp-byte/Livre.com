@@ -79,3 +79,16 @@ describe('séries', () => {
     expect(detectSeries('1984')).toBeNull();
   });
 });
+
+import { coverFallbacks, hiResCover } from '@/lib/covers';
+
+describe('couvertures', () => {
+  it('demande une version haute résolution Google avec repli sur la miniature', () => {
+    const thumb = 'https://books.google.com/books/content?id=abc&printsec=frontcover&img=1&zoom=1&source=gbs_api';
+    const hi = hiResCover(thumb);
+    expect(hi).toContain('fife=w800');
+    expect(hi).not.toContain('zoom=1&');
+    expect(coverFallbacks(hi)).toEqual([hi, expect.stringContaining('zoom=1')]);
+    expect(hiResCover('https://covers.openlibrary.org/b/id/1-L.jpg')).toBe('https://covers.openlibrary.org/b/id/1-L.jpg');
+  });
+});

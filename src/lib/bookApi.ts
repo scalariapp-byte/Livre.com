@@ -1,4 +1,5 @@
 import { mapGenre } from './constants';
+import { hiResCover } from './covers';
 
 export interface BookSearchResult {
   sourceId: string;
@@ -74,7 +75,7 @@ async function searchGoogle(query: string, signal?: AbortSignal): Promise<BookSe
         authors: i.authors ?? [],
         description: stripHtml(i.description),
         pageCount: i.pageCount || undefined,
-        coverUrl: thumb ? thumb.replace('&edge=curl', '').replace('zoom=1', 'zoom=2') : undefined,
+        coverUrl: thumb ? hiResCover(thumb.replace('&edge=curl', '')) : undefined,
         isbn,
         publisher: i.publisher,
         publishedYear: i.publishedDate?.slice(0, 4),

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, BookOpen, MessageSquareHeart, Calendar, CheckCircle2, Clock, ExternalLink, Heart, NotebookPen, Pencil, Repeat2, Timer, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, ImageIcon, MessageSquareHeart, Calendar, CheckCircle2, Clock, ExternalLink, Heart, NotebookPen, Pencil, Repeat2, Timer, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLibrary } from '@/store/useLibrary';
@@ -33,6 +33,7 @@ export function BookDetail() {
   const setEdit = useUI((s) => s.setEditBook);
   const setReflection = useUI((s) => s.setReflection);
   const setShelfPicker = useUI((s) => s.setShelfPicker);
+  const setCoverPicker = useUI((s) => s.setCoverPicker);
   const shelves = useLibrary((s) => s.shelves);
 
   const sessions = useMemo(() => allSessions.filter((s) => s.bookId === id).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)), [allSessions, id]);
@@ -116,9 +117,20 @@ export function BookDetail() {
           </div>
 
           <div className="flex flex-col items-center gap-6 pb-6 text-center sm:flex-row sm:items-end sm:text-left">
-            <motion.div initial={{ opacity: 0, y: 16, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ type: 'spring', bounce: 0.25 }}>
+            <motion.button
+              type="button"
+              onClick={() => setCoverPicker(book.id)}
+              aria-label="Changer la couverture"
+              initial={{ opacity: 0, y: 16, rotate: -2 }}
+              animate={{ opacity: 1, y: 0, rotate: 0 }}
+              transition={{ type: 'spring', bounce: 0.25 }}
+              className="group relative"
+            >
               <BookCover title={book.title} author={book.authors[0]} src={book.coverUrl} size="xl" className="!w-[150px] shadow-lift sm:!w-[180px]" />
-            </motion.div>
+              <span className="absolute -bottom-2 -right-2 flex size-9 items-center justify-center rounded-full border-4 border-bg bg-ink text-bg transition group-active:scale-90">
+                <ImageIcon className="size-4" />
+              </span>
+            </motion.button>
             <div className="min-w-0 flex-1">
               <span className="label">{STATUS_META[book.status].label}</span>
               <h1 className="h-display mt-1 text-[30px] font-semibold leading-[1.08] sm:text-[38px]">{book.title}</h1>

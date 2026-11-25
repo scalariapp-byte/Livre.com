@@ -35,6 +35,8 @@ export interface Book {
   genre?: string;
   pageCount: number;
   coverUrl?: string;
+  /** La recherche automatique de couverture a déjà été tentée. */
+  coverChecked?: boolean;
   isbn?: string;
   publisher?: string;
   publishedYear?: string;

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { coverFallbacks } from '@/lib/covers';
 import { cn, hashString } from '@/lib/utils';
 
 const PALETTES = [
@@ -30,10 +31,21 @@ const sizes = {
 
 /** Couverture du livre, avec une couverture typographique générée si l'image est absente ou inaccessible. */
 export function BookCover({ title, author, src, className, size = 'md' }: Props) {
-  const [failed, setFailed] = useState(false);
+  const candidates = coverFallbacks(src);
+  const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setAttempt(0);
+    setLoaded(false);
+  }, [src]);
+  const failed = attempt >= candidates.length;
+  const current = candidates[attempt];
+  const next = () => {
+    setLoaded(false);
+    setAttempt((a) => a + 1);
+  };
   const [bg, fg] = PALETTES[hashString(title) % PALETTES.length];
-  const showImg = src && !failed;
+  const showImg = !!current && !failed;
   const small = size === 'xs' || size === 'sm';
 
   return (
@@ -61,17 +73,18 @@ export function BookCover({ title, author, src, className, size = 'md' }: Props)
       )}
       {showImg && (
         <img
-          src={src}
+          key={current}
+          src={current}
           alt={`Couverture de ${title}`}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
           onLoad={(e) => {
             // Certaines API renvoient une image 1×1 quand la couverture n'existe pas.
-            if ((e.currentTarget.naturalWidth || 0) < 10) setFailed(true);
+            if ((e.currentTarget.naturalWidth || 0) < 10) next();
             else setLoaded(true);
           }}
-          onError={() => setFailed(true)}
+          onError={next}
           className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', loaded ? 'opacity-100' : 'opacity-0')}
         />
       )}

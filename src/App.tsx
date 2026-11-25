@@ -8,6 +8,8 @@ import { AddBookSheet, EditBookSheet } from '@/components/books/AddBookSheet';
 import { ProgressSheet, TimerFinishSheet } from '@/components/books/ProgressSheet';
 import { ReflectionSheet } from '@/components/books/ReflectionSheet';
 import { ShelfPicker } from '@/components/books/ShelfPicker';
+import { GlobalCoverPicker } from '@/components/books/CoverPicker';
+import { AutoCovers } from '@/components/AutoCovers';
 import { Toaster } from '@/components/ui/Toast';
 import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
@@ -93,6 +95,8 @@ export default function App() {
             <TimerFinishSheet />
             <ReflectionSheet />
             <ShelfPicker />
+            <GlobalCoverPicker />
+            <AutoCovers />
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />

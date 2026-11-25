@@ -1,4 +1,5 @@
-import { ImagePlus, Link2, Trash2 } from 'lucide-react';
+import { ImagePlus, Link2, Search, Trash2 } from 'lucide-react';
+import { CoverPicker } from './CoverPicker';
 import { useRef, useState, type FormEvent } from 'react';
 import type { Book, ReadingStatus } from '@/types';
 import { Field, Input, Select, Textarea } from '@/components/ui/Field';
@@ -58,6 +59,9 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
   const addShelf = useLibrary((s) => s.addShelf);
   const allSeries = useLibrary((s) => [...new Set(s.books.map((b) => b.series).filter(Boolean))] as string[]);
   const [newShelf, setNewShelf] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  /** L'utilisateur a choisi lui-même la couverture : pas de remplacement automatique. */
+  const [coverTouched, setCoverTouched] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showUrl, setShowUrl] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -73,6 +77,7 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
     setUploading(true);
     try {
       set('coverUrl', await compressImage(file));
+      setCoverTouched(true);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -128,6 +133,7 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
       series: d.series || undefined,
       seriesIndex: d.series ? d.seriesIndex : undefined,
       shelfIds: v.shelfIds,
+      ...(coverTouched ? { coverChecked: true } : {}),
       subtitle: initial.subtitle,
       language: initial.language,
     });
@@ -139,6 +145,15 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
 
   return (
     <form id={formId} onSubmit={submit} className="flex flex-col gap-5" noValidate>
+      <CoverPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        book={{ title: v.title, authors: v.authors.split(',').map((a) => a.trim()).filter(Boolean), isbn: v.isbn || undefined, coverUrl: v.coverUrl || undefined }}
+        onPick={(url) => {
+          set('coverUrl', url ?? '');
+          setCoverTouched(true);
+        }}
+      />
       <div className="flex gap-4">
         <div className="relative">
           <BookCover title={v.title || 'Nouveau livre'} author={v.authors.split(',')[0]} src={v.coverUrl || undefined} size="lg" />
@@ -147,6 +162,9 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
         <div className="flex min-w-0 flex-1 flex-col justify-end gap-2">
           <p className="label">Couverture</p>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+          <Button variant="soft" size="sm" icon={<Search className="size-4" />} onClick={() => (v.title.trim() || v.isbn.trim() ? setPickerOpen(true) : toast.info('Indiquez d’abord le titre ou l’ISBN'))}>
+            Trouver la couverture
+          </Button>
           <Button variant="outline" size="sm" icon={<ImagePlus className="size-4" />} onClick={() => fileRef.current?.click()} loading={uploading}>
             Importer une image
           </Button>

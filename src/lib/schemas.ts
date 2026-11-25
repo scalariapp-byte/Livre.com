@@ -114,6 +114,7 @@ const bookSchema = z.object({
   status,
   currentPage: z.number().default(0),
   percent: z.number().optional(),
+  coverChecked: z.boolean().optional(),
   series: optStr,
   seriesIndex: z.number().optional(),
   shelfIds: z.array(z.string()).optional(),

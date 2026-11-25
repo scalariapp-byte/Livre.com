@@ -10,6 +10,7 @@ interface UIState {
   timerFinishOpen: boolean;
   reflectionBookId: string | null;
   shelfPickerBookId: string | null;
+  coverPickerBookId: string | null;
   openAddBook: (status?: ReadingStatus, extra?: { query?: string; series?: { name: string; index: number } }) => void;
   closeAddBook: () => void;
   setEditBook: (id: string | null) => void;
@@ -19,6 +20,7 @@ interface UIState {
   setTimerFinish: (open: boolean) => void;
   setReflection: (id: string | null) => void;
   setShelfPicker: (id: string | null) => void;
+  setCoverPicker: (id: string | null) => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -30,6 +32,7 @@ export const useUI = create<UIState>((set) => ({
   timerFinishOpen: false,
   reflectionBookId: null,
   shelfPickerBookId: null,
+  coverPickerBookId: null,
   openAddBook: (status, extra) => set({ addBook: { open: true, status, ...extra } }),
   closeAddBook: () => set((s) => ({ addBook: { ...s.addBook, open: false } })),
   setEditBook: (id) => set({ editBookId: id }),
@@ -39,4 +42,5 @@ export const useUI = create<UIState>((set) => ({
   setTimerFinish: (open) => set({ timerFinishOpen: open }),
   setReflection: (id) => set({ reflectionBookId: id }),
   setShelfPicker: (id) => set({ shelfPickerBookId: id }),
+  setCoverPicker: (id) => set({ coverPickerBookId: id }),
 }));

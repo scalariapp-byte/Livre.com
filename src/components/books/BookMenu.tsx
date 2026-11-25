@@ -1,4 +1,4 @@
-import { BookOpen, BookmarkPlus, CheckCircle2, FolderPlus, Heart, MoreHorizontal, Pencil, Sparkles, Trash2, XCircle } from 'lucide-react';
+import { BookOpen, BookmarkPlus, CheckCircle2, FolderPlus, ImageIcon, Heart, MoreHorizontal, Pencil, Sparkles, Trash2, XCircle } from 'lucide-react';
 import type { Book } from '@/types';
 import { Menu, type MenuItem } from '@/components/ui/Menu';
 import { IconButton } from '@/components/ui/Button';
@@ -11,6 +11,7 @@ export function useBookMenuItems(book: Book, onDeleted?: () => void): (MenuItem 
   const setEditBook = useUI((s) => s.setEditBook);
   const setProgressBook = useUI((s) => s.setProgressBook);
   const setShelfPicker = useUI((s) => s.setShelfPicker);
+  const setCoverPicker = useUI((s) => s.setCoverPicker);
   const items: (MenuItem | 'divider')[] = [];
   if (book.status === 'reading') items.push({ label: 'Mettre à jour la progression', icon: <BookOpen />, onSelect: () => setProgressBook(book.id) });
   if (book.status !== 'reading' && book.status !== 'finished')
@@ -23,6 +24,7 @@ export function useBookMenuItems(book: Book, onDeleted?: () => void): (MenuItem 
   items.push('divider');
   items.push({ label: book.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris', icon: <Heart />, onSelect: () => toggleFavorite(book.id) });
   items.push({ label: 'Ajouter à une collection', icon: <FolderPlus />, onSelect: () => setShelfPicker(book.id) });
+  items.push({ label: 'Changer la couverture', icon: <ImageIcon />, onSelect: () => setCoverPicker(book.id) });
   items.push({ label: 'Modifier', icon: <Pencil />, onSelect: () => setEditBook(book.id) });
   items.push({
     label: 'Supprimer',
