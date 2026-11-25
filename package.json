@@ -11,6 +11,10 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/filesystem": "^6.0.1",
+    "@capacitor/share": "^6.0.2",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.17",
     "idb-keyval": "^6.2.1",
@@ -22,6 +26,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

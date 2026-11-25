@@ -14,6 +14,7 @@ import { compressImage } from '@/lib/image';
 import { backupSchema, type Backup } from '@/lib/schemas';
 import { buildDemoData } from '@/lib/demo';
 import { cn, formatMinutes } from '@/lib/utils';
+import { isNative, saveFile } from '@/lib/platform';
 import { GoalsSheet } from './Stats';
 import type { Accent, ThemeMode } from '@/types';
 
@@ -81,16 +82,14 @@ export function SettingsPage() {
     }
   };
 
-  const doExport = () => {
+  const doExport = async () => {
     const data = exportBackup();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `livre-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success('Sauvegarde exportée', { description: `${books.length} livres, ${sessions.length} sessions` });
+    try {
+      await saveFile(`livre-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2), 'application/json');
+      toast.success('Sauvegarde exportée', { description: `${books.length} livres, ${sessions.length} sessions` });
+    } catch (e) {
+      if (!/cancel/i.test((e as Error).message ?? '')) toast.error('Export impossible', { description: (e as Error).message });
+    }
   };
 
   const onImportFile = async (file?: File) => {
@@ -110,7 +109,10 @@ export function SettingsPage() {
 
   const requestNotifications = async (on: boolean) => {
     if (!on) return updateSettings({ notifications: false });
-    if (typeof Notification === 'undefined') return toast.error('Notifications non prises en charge par ce navigateur', { description: 'Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil.' });
+    if (typeof Notification === 'undefined')
+      return toast.error(isNative() ? 'Notifications système indisponibles dans l’application' : 'Notifications non prises en charge par ce navigateur', {
+        description: isNative() ? 'Les rappels restent visibles dans la cloche et peuvent être ajoutés à votre agenda.' : 'Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil.',
+      });
     const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
     if (perm === 'granted') {
       updateSettings({ notifications: true });

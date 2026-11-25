@@ -1,3 +1,5 @@
+import { saveFile } from './platform';
+
 /** Génère un fichier iCalendar (.ics) pour ajouter un rappel au calendrier du téléphone. */
 function esc(s: string) {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
@@ -23,13 +25,7 @@ export function downloadIcs(opts: { uid: string; title: string; description?: st
   if (opts.description) lines.push(`DESCRIPTION:${esc(opts.description)}`);
   lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc(opts.title)}`, `TRIGGER:-PT${opts.alarmMinutesBefore ?? (opts.time ? 15 : 0)}M`, 'END:VALARM');
   lines.push('END:VEVENT', 'END:VCALENDAR');
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${opts.title.replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40)}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return saveFile(`${opts.title.replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40)}.ics`, lines.join('\r\n'), 'text/calendar;charset=utf-8').catch((e: Error) => {
+    if (!/cancel/i.test(e?.message ?? '')) console.error('Export du rappel impossible', e);
+  });
 }
