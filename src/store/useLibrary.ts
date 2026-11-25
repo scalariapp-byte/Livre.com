@@ -41,6 +41,8 @@ export type NewBook = Partial<Omit<Book, 'id' | 'addedAt' | 'updatedAt' | 'notes
 interface Actions {
   addBook: (input: NewBook) => string;
   updateBook: (id: string, patch: Partial<Book>) => void;
+  /** Mise à jour technique (couverture, couleur) sans changer la date de modification. */
+  patchBook: (id: string, patch: Partial<Book>) => void;
   deleteBook: (id: string) => void;
   restoreBook: (snapshot: DeletedBookSnapshot) => void;
   setStatus: (id: string, status: ReadingStatus) => void;
@@ -187,6 +189,8 @@ export const useLibrary = create<LibraryState>()(
           ),
         }));
       },
+
+      patchBook: (id, patch) => set((s) => ({ books: s.books.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
 
       deleteBook: (id) =>
         set((s) => ({

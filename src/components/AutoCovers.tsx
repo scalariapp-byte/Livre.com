@@ -26,7 +26,7 @@ export function AutoCovers() {
         if (cancelled) break;
         try {
           if (b.coverUrl && (await probeImage(b.coverUrl))) {
-            useLibrary.getState().updateBook(b.id, { coverChecked: true });
+            useLibrary.getState().patchBook(b.id, { coverChecked: true });
             continue;
           }
           const candidates = await findCovers(b);
@@ -40,12 +40,41 @@ export function AutoCovers() {
           const still = useLibrary.getState().books.find((x) => x.id === b.id);
           if (!still) continue;
           // Ne remplace jamais une couverture choisie entre-temps par l'utilisateur.
-          if (still.coverUrl !== b.coverUrl) useLibrary.getState().updateBook(b.id, { coverChecked: true });
-          else useLibrary.getState().updateBook(b.id, found ? { coverUrl: found, coverChecked: true } : { coverChecked: true });
+          if (still.coverUrl !== b.coverUrl) useLibrary.getState().patchBook(b.id, { coverChecked: true });
+          else useLibrary.getState().patchBook(b.id, found ? { coverUrl: found, coverChecked: true } : { coverChecked: true });
         } catch {
           break; // hors ligne ou quota : on réessaiera au prochain lancement
         }
         await new Promise((r) => setTimeout(r, DELAY));
+      }
+      running.current = false;
+    })();
+    return () => {
+      cancelled = true;
+      running.current = false;
+    };
+  }, [pending]);
+
+  return null;
+}
+
+/** Calcule en arrière-plan la couleur de tranche de chaque livre à partir de sa couverture. */
+export function SpineColors() {
+  const pending = useLibrary((s) => s.books.filter((b) => b.coverUrl && b.spineFor !== b.coverUrl).length);
+  const running = useRef(false);
+
+  useEffect(() => {
+    if (!pending || running.current) return;
+    running.current = true;
+    let cancelled = false;
+    (async () => {
+      const { extractSpineColor } = await import('@/lib/spineColor');
+      const queue = useLibrary.getState().books.filter((b) => b.coverUrl && b.spineFor !== b.coverUrl);
+      for (const b of queue) {
+        if (cancelled) break;
+        const color = await extractSpineColor(b.coverUrl!);
+        // spineFor est renseigné même en cas d'échec pour ne pas réessayer en boucle.
+        useLibrary.getState().patchBook(b.id, { spineColor: color ?? undefined, spineFor: b.coverUrl });
       }
       running.current = false;
     })();

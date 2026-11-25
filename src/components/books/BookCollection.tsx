@@ -1,6 +1,7 @@
 import { AnimatePresence } from 'framer-motion';
-import { ArrowDownUp, Check, Layers, LayoutGrid, Library, List, Search, X } from 'lucide-react';
+import { ArrowDownUp, BookCopy, Check, Layers, LayoutGrid, Library, List, Search, X } from 'lucide-react';
 import { ShelfView } from './ShelfView';
+import { SpineView } from './SpineView';
 import { useLibrary } from '@/store/useLibrary';
 import { STATUS_META, STATUS_ORDER } from '@/lib/constants';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -84,7 +85,7 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('all');
   const [sort, setSort] = useStoredState<SortKey>(`livre-sort-${storageKey}`, defaultSort);
-  const [view, setView] = useStoredState<'grid' | 'list' | 'shelf'>(`livre-view-${storageKey}`, 'grid');
+  const [view, setView] = useStoredState<'grid' | 'list' | 'shelf' | 'spines'>(`livre-view-${storageKey}`, groupable ? 'spines' : 'grid');
   const [group, setGroup] = useStoredState<GroupKey>(`livre-group-${storageKey}`, groupable ? 'genre' : 'none');
   const shelves = useLibrary((s) => s.shelves);
 
@@ -179,12 +180,13 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
 <Menu
           items={[
             { label: 'Grille', icon: <LayoutGrid />, active: view === 'grid', onSelect: () => setView('grid') },
-            { label: 'Étagères (bibliothèque virtuelle)', icon: <Library />, active: view === 'shelf', onSelect: () => setView('shelf') },
+            { label: 'Étagère : tranches', icon: <BookCopy />, active: view === 'spines', onSelect: () => setView('spines') },
+            { label: 'Étagère : couvertures', icon: <Library />, active: view === 'shelf', onSelect: () => setView('shelf') },
             { label: 'Liste', icon: <List />, active: view === 'list', onSelect: () => setView('list') },
           ]}
           trigger={(p) => (
             <IconButton label="Affichage" variant="outline" {...p}>
-              {view === 'grid' ? <LayoutGrid className="size-[18px]" /> : view === 'shelf' ? <Library className="size-[18px]" /> : <List className="size-[18px]" />}
+              {view === 'grid' ? <LayoutGrid className="size-[18px]" /> : view === 'shelf' ? <Library className="size-[18px]" /> : view === 'spines' ? <BookCopy className="size-[18px]" /> : <List className="size-[18px]" />}
             </IconButton>
           )}
         />
@@ -216,6 +218,9 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
           </button>
         </div>
       ) : (
+        view === 'spines' && groups.length > 1 ? (
+          <SpineView sections={groups} />
+        ) : (
         groups.map((g) => (
           <section key={g.key} className={cn(g.key && 'mb-8')}>
             {g.key && (
@@ -223,7 +228,9 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
                 {g.key} <span className="font-sans text-sm font-medium text-muted">{g.items.length}</span>
               </h3>
             )}
-            {view === 'shelf' ? (
+            {view === 'spines' ? (
+              <SpineView books={g.items} />
+            ) : view === 'shelf' ? (
               <ShelfView books={g.items} />
             ) : view === 'grid' ? (
               <div className="grid grid-cols-3 gap-x-3.5 gap-y-6 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
@@ -244,6 +251,7 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
             )}
           </section>
         ))
+        )
       )}
     </div>
   );

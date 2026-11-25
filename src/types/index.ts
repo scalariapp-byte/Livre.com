@@ -37,6 +37,9 @@ export interface Book {
   coverUrl?: string;
   /** La recherche automatique de couverture a déjà été tentée. */
   coverChecked?: boolean;
+  /** Couleur de tranche extraite de la couverture, et couverture analysée. */
+  spineColor?: string;
+  spineFor?: string;
   isbn?: string;
   publisher?: string;
   publishedYear?: string;

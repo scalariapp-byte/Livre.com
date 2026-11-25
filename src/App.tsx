@@ -9,7 +9,7 @@ import { ProgressSheet, TimerFinishSheet } from '@/components/books/ProgressShee
 import { ReflectionSheet } from '@/components/books/ReflectionSheet';
 import { ShelfPicker } from '@/components/books/ShelfPicker';
 import { GlobalCoverPicker } from '@/components/books/CoverPicker';
-import { AutoCovers } from '@/components/AutoCovers';
+import { AutoCovers, SpineColors } from '@/components/AutoCovers';
 import { Toaster } from '@/components/ui/Toast';
 import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
@@ -97,6 +97,7 @@ export default function App() {
             <ShelfPicker />
             <GlobalCoverPicker />
             <AutoCovers />
+            <SpineColors />
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />
