@@ -152,3 +152,20 @@ describe('progression en % et bilan', () => {
     expect(backup.data.books[0].reflection).toMatchObject({ moods: ['moved'], ending: 'loved', answers: { favorite: 'Le style' } });
   });
 });
+
+describe('collections', () => {
+  it('crée, remplit, puis supprime une collection sans supprimer les livres', () => {
+    const b = st().addBook({ title: 'A' });
+    const sh = st().addShelf('Coups de cœur', '❤️');
+    st().toggleShelf(b, sh);
+    expect(st().books[0].shelfIds).toEqual([sh]);
+    st().toggleShelf(b, sh, true);
+    expect(st().books[0].shelfIds).toEqual([sh]);
+    const backup = backupSchema.parse(JSON.parse(JSON.stringify(st().exportBackup())));
+    expect(backup.data.shelves[0].name).toBe('Coups de cœur');
+    st().deleteShelf(sh);
+    expect(st().shelves).toHaveLength(0);
+    expect(st().books).toHaveLength(1);
+    expect(st().books[0].shelfIds).toEqual([]);
+  });
+});

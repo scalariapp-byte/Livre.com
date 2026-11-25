@@ -56,6 +56,7 @@ export function LibraryPage() {
         <BookCollection
           books={shown}
           storageKey="library"
+          groupable
           sorts={['added', 'title', 'author', 'rating', 'progress', 'pages']}
           defaultSort="added"
           showStatus={filter === 'all'}

@@ -18,6 +18,7 @@ import { changeStatus } from '@/lib/bookActions';
 import { estimateRemaining, readingSpeed } from '@/lib/stats';
 import { fmtDate, fmtShort, relativeDay } from '@/lib/dates';
 import { bookPercent, cn, formatMinutes } from '@/lib/utils';
+import { seriesLabel } from '@/lib/series';
 import { ENDINGS, PACES, RECOMMENDS, moodLabel, questionsFor } from '@/lib/reflection';
 
 export function BookDetail() {
@@ -31,6 +32,8 @@ export function BookDetail() {
   const setProgress = useUI((s) => s.setProgressBook);
   const setEdit = useUI((s) => s.setEditBook);
   const setReflection = useUI((s) => s.setReflection);
+  const setShelfPicker = useUI((s) => s.setShelfPicker);
+  const shelves = useLibrary((s) => s.shelves);
 
   const sessions = useMemo(() => allSessions.filter((s) => s.bookId === id).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)), [allSessions, id]);
   const speed = useMemo(() => readingSpeed(allSessions), [allSessions]);
@@ -121,6 +124,11 @@ export function BookDetail() {
               <h1 className="h-display mt-1 text-[30px] font-semibold leading-[1.08] sm:text-[38px]">{book.title}</h1>
               {book.subtitle && <p className="mt-1 text-[15px] text-ink-2">{book.subtitle}</p>}
               <p className="mt-2 text-[15px] text-muted">{book.authors.join(', ') || 'Auteur inconnu'}</p>
+              {book.series && (
+                <Link to={`/collections/series/${encodeURIComponent(book.series)}`} className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-[13px] font-semibold text-accent">
+                  {seriesLabel(book.series, book.seriesIndex)}
+                </Link>
+              )}
               <div className="mt-3 flex justify-center sm:justify-start">
                 <Rating value={book.rating} onChange={(r) => updateBook(book.id, { rating: r })} size={22} />
               </div>
@@ -400,6 +408,28 @@ export function BookDetail() {
               <p className="flex items-center gap-2 text-sm text-muted">
                 <Clock className="size-4" /> Aucune session enregistrée.
               </p>
+            )}
+          </section>
+
+          <section className="card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="label">Collections</p>
+              <button type="button" onClick={() => setShelfPicker(book.id)} className="text-xs font-semibold text-accent">
+                + Gérer
+              </button>
+            </div>
+            {book.shelfIds?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {shelves
+                  .filter((sh) => book.shelfIds!.includes(sh.id))
+                  .map((sh) => (
+                    <Link key={sh.id} to={`/collections/shelf/${sh.id}`} className="rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-medium transition hover:bg-surface-3">
+                      {sh.emoji ?? '📚'} {sh.name}
+                    </Link>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted">Dans aucune collection.</p>
             )}
           </section>
 

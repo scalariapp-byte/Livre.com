@@ -23,8 +23,11 @@
       // Applique le thème avant le premier rendu pour éviter le flash.
       try {
         var t = localStorage.getItem('livre-theme') || 'system';
-        var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-        if (dark) document.documentElement.classList.add('dark');
+        var darks = ['dark', 'midnight', 'forest', 'amoled'];
+        var sys = matchMedia('(prefers-color-scheme: dark)').matches;
+        var id = t === 'system' ? (sys ? 'dark' : 'light') : t;
+        if (darks.indexOf(id) >= 0) document.documentElement.classList.add('dark');
+        if (id !== 'light' && id !== 'dark') document.documentElement.classList.add('theme-' + id);
       } catch (e) {}
     </script>
   </head>

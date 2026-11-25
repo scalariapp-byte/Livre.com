@@ -64,3 +64,18 @@ describe('ISBN', () => {
     expect(pickIsbn(['3017620422003'])).toBeNull();
   });
 });
+
+import { detectSeries } from '@/lib/series';
+
+describe('séries', () => {
+  it('détecte la série et le tome dans les titres courants', () => {
+    expect(detectSeries('Seasons Tome 3 : Un printemps pour te succomber')).toEqual({ series: 'Seasons', index: 3 });
+    expect(detectSeries('Harry Potter, T. 1')).toEqual({ series: 'Harry Potter', index: 1 });
+    expect(detectSeries('Dune (Volume 2)')).toEqual({ series: 'Dune', index: 2 });
+    expect(detectSeries('La Passe-miroir', 'Livre 2 - Les disparus du Clairdelune')).toEqual({ series: 'La Passe-miroir', index: 2 });
+  });
+  it('ne détecte rien dans un titre simple', () => {
+    expect(detectSeries('Le Petit Prince')).toBeNull();
+    expect(detectSeries('1984')).toBeNull();
+  });
+});

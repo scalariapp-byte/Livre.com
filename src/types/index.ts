@@ -41,6 +41,11 @@ export interface Book {
   language?: string;
   status: ReadingStatus;
   currentPage: number;
+  /** Série / saga et numéro de tome. */
+  series?: string;
+  seriesIndex?: number;
+  /** Collections personnelles auxquelles le livre appartient. */
+  shelfIds?: string[];
   /** Progression en % pour les livres sans nombre de pages (liseuse, livre audio). */
   percent?: number;
   /** Bilan de lecture. */
@@ -58,6 +63,14 @@ export interface Book {
   updatedAt: string;
   startedAt?: string;
   finishedAt?: string;
+}
+
+/** Collection personnelle (étagère) créée par l'utilisateur. */
+export interface Shelf {
+  id: string;
+  name: string;
+  emoji?: string;
+  createdAt: string;
 }
 
 /** Session de lecture effectivement réalisée. */
@@ -101,7 +114,7 @@ export interface Loan {
   createdAt: string;
 }
 
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type ThemeMode = 'system' | 'light' | 'sepia' | 'rose' | 'mint' | 'dark' | 'midnight' | 'forest' | 'amoled';
 export type Accent = 'terracotta' | 'ink' | 'sage' | 'plum' | 'ocean' | 'amber';
 
 export interface Settings {
@@ -133,6 +146,7 @@ export interface LibraryData {
   sessions: ReadingSession[];
   plans: ReadingPlan[];
   loans: Loan[];
+  shelves: Shelf[];
   settings: Settings;
   timer: ActiveTimer | null;
   dismissedAlerts: string[];

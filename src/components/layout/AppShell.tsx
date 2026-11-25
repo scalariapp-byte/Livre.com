@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Plus, MoreHorizontal, Search } from 'lucide-react';
 import { Suspense, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
@@ -37,7 +37,7 @@ function Sidebar() {
         <kbd className="ml-auto rounded-md bg-surface-2 px-1.5 py-0.5 font-sans text-2xs font-semibold">⌘K</kbd>
       </button>
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
-        {NAV.slice(0, 8).map(({ to, label, icon: Icon }) => (
+        {NAV.filter((n) => n.to !== '/settings').map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -88,7 +88,7 @@ function BottomNav() {
   const [more, setMore] = useState(false);
   const location = useLocation();
   const main = [NAV[0], NAV[1]];
-  const right = [NAV[5]];
+  const right = [NAV.find((n) => n.to === '/calendar')!];
   const moreActive = !['/', '/library', '/calendar'].includes(location.pathname) && !location.pathname.startsWith('/book/');
 
   const item = ({ to, label, icon: Icon, short }: (typeof NAV)[number] & { short?: string }) => (
@@ -159,21 +159,20 @@ export function AppShell({ fallback }: { fallback?: ReactNode }) {
     <div className="flex min-h-dvh">
       <Sidebar />
       <main className="min-w-0 flex-1 overflow-x-clip pb-[calc(96px+env(safe-area-inset-bottom))] lg:pb-10">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-          >
-            {/* Suspense ici (et non au-dessus du shell) : la navigation et les feuilles ouvertes
-                restent montées pendant le chargement d'une page, sinon leurs animations de fermeture se bloquent. */}
-            <Suspense fallback={fallback}>
-              <Outlet />
-            </Suspense>
-          </motion.div>
-        </AnimatePresence>
+        {/* Transition d'entrée uniquement : une animation de sortie (AnimatePresence « wait »)
+            peut rester bloquée quand la page suivante se charge à la demande. */}
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+        >
+          {/* Suspense ici (et non au-dessus du shell) : la navigation et les feuilles ouvertes
+              restent montées pendant le chargement d'une page. */}
+          <Suspense fallback={fallback}>
+            <Outlet />
+          </Suspense>
+        </motion.div>
       </main>
       <BottomNav />
       <TimerPill />

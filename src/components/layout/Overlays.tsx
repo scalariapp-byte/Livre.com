@@ -11,6 +11,7 @@ import { NAV } from './nav';
 import { BookCover } from '@/components/books/BookCover';
 import { STATUS_META, ACCENTS } from '@/lib/constants';
 import { cn, normalize } from '@/lib/utils';
+import { THEMES, resolveTheme } from '@/lib/themes';
 import { computeAlerts } from '@/lib/alerts';
 
 const toneIcon = {
@@ -250,12 +251,14 @@ export function ThemeController() {
     const root = document.documentElement;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      const dark = theme === 'dark' || (theme === 'system' && mq.matches);
+      const t = resolveTheme(theme, mq.matches);
+      const dark = t.dark;
       root.classList.toggle('dark', dark);
+      THEMES.forEach((x) => root.classList.toggle(`theme-${x.id}`, x.id === t.id && x.id !== 'light' && x.id !== 'dark'));
       const a = ACCENTS[accent] ?? ACCENTS.terracotta;
       root.style.setProperty('--accent', dark ? a.rgbDark : a.rgb);
       root.style.setProperty('--accent-ink', dark ? '20 16 14' : a.contrast);
-      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', dark ? '#100F0E' : '#F8F6F2'));
+      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', t.bar));
     };
     apply();
     try {

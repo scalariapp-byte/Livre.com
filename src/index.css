@@ -113,3 +113,70 @@
   animation-duration: 0.001ms !important;
   transition-duration: 0.001ms !important;
 }
+
+/* Thèmes supplémentaires, hors @layer : leurs classes sont ajoutées dynamiquement
+   (theme-<id>) et seraient sinon supprimées par Tailwind. */
+.theme-sepia {
+  --bg: 244 236 220;
+  --surface: 251 246 236;
+  --surface-2: 236 226 206;
+  --surface-3: 226 213 189;
+  --line: 224 211 187;
+  --ink: 59 44 30;
+  --ink-2: 92 74 56;
+  --muted: 132 112 90;
+  --shadow: 80 55 20;
+}
+.theme-rose {
+  --bg: 250 243 244;
+  --surface: 255 255 255;
+  --surface-2: 245 233 235;
+  --surface-3: 236 219 223;
+  --line: 236 222 225;
+  --ink: 43 27 32;
+  --ink-2: 84 62 68;
+  --muted: 138 112 118;
+  --shadow: 90 30 50;
+}
+.theme-mint {
+  --bg: 242 247 244;
+  --surface: 255 255 255;
+  --surface-2: 230 240 234;
+  --surface-3: 216 230 222;
+  --line: 220 232 225;
+  --ink: 22 36 30;
+  --ink-2: 56 74 66;
+  --muted: 100 120 111;
+  --shadow: 20 60 40;
+}
+.theme-midnight {
+  --bg: 13 17 28;
+  --surface: 21 27 42;
+  --surface-2: 30 37 56;
+  --surface-3: 41 49 71;
+  --line: 42 50 72;
+  --ink: 232 236 245;
+  --ink-2: 198 205 222;
+  --muted: 140 150 175;
+}
+.theme-forest {
+  --bg: 14 20 17;
+  --surface: 22 31 26;
+  --surface-2: 31 43 36;
+  --surface-3: 42 56 48;
+  --line: 44 58 50;
+  --ink: 233 241 236;
+  --ink-2: 200 214 206;
+  --muted: 140 160 150;
+}
+.theme-amoled {
+  --bg: 0 0 0;
+  --surface: 12 12 12;
+  --surface-2: 22 22 22;
+  --surface-3: 34 34 34;
+  --line: 38 38 38;
+  --ink: 245 245 245;
+  --ink-2: 210 210 210;
+  --muted: 150 150 150;
+}
+

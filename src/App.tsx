@@ -7,6 +7,7 @@ import { AlertsWatcher, CommandPalette, NotificationsSheet, ThemeController } fr
 import { AddBookSheet, EditBookSheet } from '@/components/books/AddBookSheet';
 import { ProgressSheet, TimerFinishSheet } from '@/components/books/ProgressSheet';
 import { ReflectionSheet } from '@/components/books/ReflectionSheet';
+import { ShelfPicker } from '@/components/books/ShelfPicker';
 import { Toaster } from '@/components/ui/Toast';
 import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
@@ -24,6 +25,9 @@ const BookDetail = lazy(() => import('@/pages/BookDetail').then((m) => ({ defaul
 const LoansPage = lazy(() => import('@/pages/Loans').then((m) => ({ default: m.LoansPage })));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })));
 const StatsPage = lazy(() => import('@/pages/Stats').then((m) => ({ default: m.StatsPage })));
+const CollectionsPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.CollectionsPage })));
+const SeriesPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.SeriesPage })));
+const ShelfPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.ShelfPage })));
 const SettingsPage = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.SettingsPage })));
 
 function PageFallback() {
@@ -71,6 +75,9 @@ export default function App() {
                   <Route path="library" element={<LibraryPage />} />
                   <Route path="to-read" element={<ToReadPage />} />
                   <Route path="wishlist" element={<WishlistPage />} />
+                  <Route path="collections" element={<CollectionsPage />} />
+                  <Route path="collections/series/:name" element={<SeriesPage />} />
+                  <Route path="collections/shelf/:id" element={<ShelfPage />} />
                   <Route path="loans" element={<LoansPage />} />
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="finished" element={<FinishedPage />} />
@@ -85,6 +92,7 @@ export default function App() {
             <ProgressSheet />
             <TimerFinishSheet />
             <ReflectionSheet />
+            <ShelfPicker />
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />

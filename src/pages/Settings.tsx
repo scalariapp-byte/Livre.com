@@ -1,10 +1,9 @@
-import { Bell, Camera, RefreshCw, Smartphone, Database, Download, Moon, Monitor, Palette, ShieldCheck, Sparkles, Sun, Target, Trash2, Upload, User } from 'lucide-react';
+import { Bell, Camera, RefreshCw, Smartphone, Database, Download, Monitor, Palette, ShieldCheck, Sparkles, Target, Trash2, Upload, User } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PageBody, PageHeader } from '@/components/layout/PageHeader';
 import { Avatar, Switch } from '@/components/ui/misc';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
-import { Segmented } from '@/components/ui/Segmented';
 import { Sheet } from '@/components/ui/Sheet';
 import { toast } from '@/components/ui/Toast';
 import { confirm } from '@/components/ui/Confirm';
@@ -16,6 +15,7 @@ import { buildDemoData } from '@/lib/demo';
 import { cn, formatMinutes } from '@/lib/utils';
 import { isNative, saveFile } from '@/lib/platform';
 import { GoalsSheet } from './Stats';
+import { THEMES } from '@/lib/themes';
 import { APP_VERSION, checkForUpdate, openUpdate } from '@/lib/updates';
 import { useUpdate } from '@/components/UpdateChecker';
 import type { Accent, ThemeMode } from '@/types';
@@ -169,18 +169,39 @@ export function SettingsPage() {
         </section>
 
         <Group title="Apparence" icon={<Palette />}>
-          <Row title="Thème">
-            <Segmented<ThemeMode>
-              size="sm"
-              value={settings.theme}
-              onChange={(theme) => updateSettings({ theme })}
-              options={[
-                { value: 'system', label: <span className="flex items-center gap-1.5"><Monitor className="size-4" /><span className="sr-only sm:not-sr-only">Système</span></span> },
-                { value: 'light', label: <span className="flex items-center gap-1.5"><Sun className="size-4" /><span className="sr-only sm:not-sr-only">Clair</span></span> },
-                { value: 'dark', label: <span className="flex items-center gap-1.5"><Moon className="size-4" /><span className="sr-only sm:not-sr-only">Sombre</span></span> },
-              ]}
-            />
-          </Row>
+          <div className="px-4 py-3.5 sm:px-5">
+            <p className="text-[15px] font-medium">Thème</p>
+            <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-5">
+              {[{ id: 'system' as ThemeMode, label: 'Automatique', preview: ['#F8F6F2', '#100F0E', '#888888'] }, ...THEMES].map((t) => {
+                const on = settings.theme === t.id;
+                const [bg, surface, ink] = t.preview;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => updateSettings({ theme: t.id })}
+                    className={cn('rounded-2xl border-2 p-1.5 text-left transition active:scale-95', on ? 'border-accent' : 'border-transparent')}
+                  >
+                    <div
+                      className="relative h-16 overflow-hidden rounded-xl ring-1 ring-black/10"
+                      style={{ background: t.id === 'system' ? `linear-gradient(135deg, ${bg} 50%, ${surface} 50%)` : bg }}
+                    >
+                      {t.id !== 'system' && (
+                        <div className="absolute inset-x-2 bottom-2 top-3 rounded-lg p-1.5" style={{ background: surface }}>
+                          <div className="h-1.5 w-2/3 rounded-full" style={{ background: ink, opacity: 0.85 }} />
+                          <div className="mt-1 h-1.5 w-1/3 rounded-full" style={{ background: ink, opacity: 0.35 }} />
+                          <div className="absolute bottom-1.5 right-1.5 size-3 rounded-full bg-accent" />
+                        </div>
+                      )}
+                      {t.id === 'system' && <Monitor className="absolute inset-0 m-auto size-5" style={{ color: ink }} />}
+                    </div>
+                    <p className={cn('mt-1.5 truncate px-0.5 text-[12.5px] font-medium', on ? 'text-accent' : 'text-ink-2')}>{t.label}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="px-4 py-3.5 sm:px-5">
             <p className="text-[15px] font-medium">Couleur d'accent</p>
             <div className="mt-3 flex flex-wrap gap-2.5">

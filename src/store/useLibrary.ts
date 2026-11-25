@@ -11,6 +11,7 @@ import type {
   ReadingStatus,
   Reflection,
   Settings,
+  Shelf,
 } from '@/types';
 import { uid } from '@/lib/utils';
 import { isoToDayKey, toDayKey } from '@/lib/dates';
@@ -47,6 +48,11 @@ interface Actions {
   /** Progression en % : convertie en pages si le nombre de pages est connu. */
   setPercent: (id: string, pct: number, opts?: { minutes?: number; date?: string }) => void;
   saveReflection: (id: string, r: Omit<Reflection, 'createdAt' | 'updatedAt'>) => void;
+
+  addShelf: (name: string, emoji?: string) => string;
+  updateShelf: (id: string, patch: Partial<Pick<Shelf, 'name' | 'emoji'>>) => void;
+  deleteShelf: (id: string) => void;
+  toggleShelf: (bookId: string, shelfId: string, on?: boolean) => void;
   toggleFavorite: (id: string) => void;
 
   addNote: (bookId: string, text: string, page?: number) => void;
@@ -75,7 +81,7 @@ interface Actions {
   importBackup: (backup: Backup, mode: 'replace' | 'merge') => void;
   exportBackup: () => Backup;
   resetAll: () => void;
-  loadDemo: (data: Pick<LibraryData, 'books' | 'sessions' | 'plans' | 'loans'>) => void;
+  loadDemo: (data: Pick<LibraryData, 'books' | 'sessions' | 'plans' | 'loans'> & { shelves?: Shelf[] }) => void;
 }
 
 export interface DeletedBookSnapshot {
@@ -95,6 +101,7 @@ const emptyData = (): LibraryData => ({
   sessions: [],
   plans: [],
   loans: [],
+  shelves: [],
   settings: defaultSettings(),
   timer: null,
   dismissedAlerts: [],
@@ -254,6 +261,28 @@ export const useLibrary = create<LibraryState>()(
           ),
         })),
 
+      addShelf: (name, emoji) => {
+        const id = uid();
+        set((s) => ({ shelves: [...s.shelves, { id, name: name.trim().slice(0, 60), emoji, createdAt: now() }] }));
+        return id;
+      },
+      updateShelf: (id, patch) => set((s) => ({ shelves: s.shelves.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+      deleteShelf: (id) =>
+        set((s) => ({
+          shelves: s.shelves.filter((x) => x.id !== id),
+          books: s.books.map((b) => (b.shelfIds?.includes(id) ? { ...b, shelfIds: b.shelfIds.filter((x) => x !== id) } : b)),
+        })),
+      toggleShelf: (bookId, shelfId, on) =>
+        set((s) => ({
+          books: s.books.map((b) => {
+            if (b.id !== bookId) return b;
+            const has = b.shelfIds?.includes(shelfId) ?? false;
+            const want = on ?? !has;
+            if (want === has) return b;
+            return { ...b, shelfIds: want ? [...(b.shelfIds ?? []), shelfId] : (b.shelfIds ?? []).filter((x) => x !== shelfId), updatedAt: now() };
+          }),
+        })),
+
       toggleFavorite: (id) =>
         set((s) => ({ books: s.books.map((b) => (b.id === id ? { ...b, favorite: !b.favorite, updatedAt: now() } : b)) })),
 
@@ -315,12 +344,12 @@ export const useLibrary = create<LibraryState>()(
       markNotified: (ids) => set((s) => ({ notifiedAlerts: [...new Set([...s.notifiedAlerts, ...ids])].slice(-500) })),
 
       exportBackup: () => {
-        const { books, sessions, plans, loans, settings } = get();
+        const { books, sessions, plans, loans, shelves, settings } = get();
         return {
           app: 'livre',
           version: DATA_VERSION,
           exportedAt: now(),
-          data: { books, sessions, plans, loans, settings },
+          data: { books, sessions, plans, loans, shelves, settings },
         };
       },
 
@@ -332,6 +361,7 @@ export const useLibrary = create<LibraryState>()(
             sessions: d.sessions,
             plans: d.plans,
             loans: d.loans,
+            shelves: d.shelves,
             settings: { ...s.settings, ...d.settings, onboarded: true },
             timer: null,
             dismissedAlerts: [],
@@ -347,6 +377,7 @@ export const useLibrary = create<LibraryState>()(
           sessions: mergeById(s.sessions, d.sessions),
           plans: mergeById(s.plans, d.plans),
           loans: mergeById(s.loans, d.loans),
+          shelves: mergeById(s.shelves, d.shelves),
         }));
       },
 
@@ -358,6 +389,7 @@ export const useLibrary = create<LibraryState>()(
           sessions: [...s.sessions, ...data.sessions],
           plans: [...s.plans, ...data.plans],
           loans: [...data.loans, ...s.loans],
+          shelves: [...s.shelves, ...(data.shelves ?? [])],
         })),
     }),
     {

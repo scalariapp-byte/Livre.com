@@ -19,11 +19,12 @@ import { WebScanner } from './WebScanner';
 import { STATUS_META } from '@/lib/constants';
 import { normalize } from '@/lib/utils';
 import { promptReflection } from '@/lib/bookActions';
+import { detectSeries } from '@/lib/series';
 
 type Mode = 'search' | 'manual';
 
 export function AddBookSheet() {
-  const { open, status } = useUI((s) => s.addBook);
+  const { open, status, query: initialQuery, series: forSeries } = useUI((s) => s.addBook);
   const close = useUI((s) => s.closeAddBook);
   const addBook = useLibrary((s) => s.addBook);
   const books = useLibrary((s) => s.books);
@@ -44,7 +45,7 @@ export function AddBookSheet() {
   useEffect(() => {
     if (open) {
       setMode('search');
-      setQuery('');
+      setQuery(initialQuery ?? '');
       setDraft(null);
       setResults([]);
       setError(null);
@@ -113,7 +114,11 @@ export function AddBookSheet() {
     }
   };
 
-  const manualDraft = (): BookDraft => (isIsbn(query) ? { isbn: cleanIsbn(query), status: status ?? 'toread' } : { title: query, status: status ?? 'toread' });
+  const manualDraft = (): BookDraft => ({
+    ...(isIsbn(query) ? { isbn: cleanIsbn(query) } : { title: query }),
+    status: status ?? 'toread',
+    ...(forSeries ? { series: forSeries.name, seriesIndex: forSeries.index } : {}),
+  });
 
   const pick = async (r: BookSearchResult) => {
     const base: BookDraft = {
@@ -129,6 +134,11 @@ export function AddBookSheet() {
       genre: r.genre,
       language: r.language,
       status: status ?? 'toread',
+      ...(() => {
+        if (forSeries) return { series: forSeries.name, seriesIndex: forSeries.index };
+        const s = detectSeries(r.title, r.subtitle);
+        return s ? { series: s.series, seriesIndex: s.index } : {};
+      })(),
     };
     setDraft(base);
     if (r.source === 'openlibrary' && !r.description) {
@@ -168,7 +178,7 @@ export function AddBookSheet() {
               value={mode}
               onChange={(m) => {
                 setMode(m);
-                if (m === 'manual') setDraft({ status: status ?? 'toread' });
+                if (m === 'manual') setDraft({ status: status ?? 'toread', ...(forSeries ? { series: forSeries.name, seriesIndex: forSeries.index } : {}) });
               }}
               options={[
                 { value: 'search', label: <span className="flex items-center gap-1.5"><Globe className="size-4" />Rechercher</span> },

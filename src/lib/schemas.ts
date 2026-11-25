@@ -34,6 +34,12 @@ export const bookFormSchema = z
       .optional()
       .refine((v) => !v || /^\d{3,4}$/.test(v), 'Année invalide'),
     rating: z.number().min(0).max(5).optional(),
+    series: z.string().trim().max(120, 'Trop long').optional(),
+    seriesIndex: z.preprocess(
+      (v) => (v === '' || v === undefined || v === null ? undefined : Number(v)),
+      z.number({ invalid_type_error: 'Numéro invalide' }).int('Nombre entier').min(1, 'Dès 1').max(999).optional(),
+    ),
+    shelfIds: z.array(z.string()).optional(),
     startedAt: z.string().optional(),
     finishedAt: z.string().optional(),
     priority: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
@@ -108,6 +114,9 @@ const bookSchema = z.object({
   status,
   currentPage: z.number().default(0),
   percent: z.number().optional(),
+  series: optStr,
+  seriesIndex: z.number().optional(),
+  shelfIds: z.array(z.string()).optional(),
   reflection: z
     .object({
       moods: z.array(z.string()).default([]),
@@ -181,11 +190,12 @@ export const backupSchema = z.object({
         createdAt: z.string(),
       }),
     ),
+    shelves: z.array(z.object({ id: z.string(), name: z.string(), emoji: optStr, createdAt: z.string() })).default([]),
     settings: z
       .object({
         name: z.string(),
         avatar: optStr,
-        theme: z.enum(['system', 'light', 'dark']),
+        theme: z.enum(['system', 'light', 'sepia', 'rose', 'mint', 'dark', 'midnight', 'forest', 'amoled']),
         accent: z.enum(['terracotta', 'ink', 'sage', 'plum', 'ocean', 'amber']),
         yearlyGoal: z.number(),
         dailyPagesGoal: z.number(),

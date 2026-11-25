@@ -1,4 +1,4 @@
-import type { Book, Loan, ReadingPlan, ReadingSession } from '@/types';
+import type { Book, Loan, ReadingPlan, ReadingSession, Shelf } from '@/types';
 import { addDays, fromDayKey, toDayKey } from './dates';
 import { uid } from './utils';
 
@@ -207,7 +207,7 @@ export function buildDemoData(today = toDayKey()) {
   }
 
   // En cours
-  const dune = make('dune', { status: 'reading', startedAt: iso(addDays(today, -18)), addedAt: iso(addDays(today, -30)), favorite: true });
+  const dune = make('dune', { series: 'Dune', seriesIndex: 1, status: 'reading', startedAt: iso(addDays(today, -18)), addedAt: iso(addDays(today, -30)), favorite: true });
   dune.currentPage = 412;
   spread(dune, addDays(today, -18), today, 412);
   dune.notes = [
@@ -219,8 +219,8 @@ export function buildDemoData(today = toDayKey()) {
   spread(hail, addDays(today, -5), addDays(today, -1), 138);
 
   // À lire
-  make('threebody', { status: 'toread', priority: 1, addedAt: iso(addDays(today, -9)) });
-  make('wind', { status: 'toread', priority: 2, addedAt: iso(addDays(today, -20)) });
+  make('threebody', { series: 'Le Problème à trois corps', seriesIndex: 1, status: 'toread', priority: 1, addedAt: iso(addDays(today, -9)) });
+  make('wind', { series: 'Chronique du tueur de roi', seriesIndex: 1, status: 'toread', priority: 2, addedAt: iso(addDays(today, -20)) });
   make('kahneman', { status: 'toread', priority: 3, addedAt: iso(addDays(today, -40)) });
 
   // Liste de souhaits
@@ -275,5 +275,16 @@ export function buildDemoData(today = toDayKey()) {
     { id: uid(), bookId: dune.id, title: 'Dune', date: addDays(today, -1), time: '21:00', durationMin: 45, done: true, createdAt: ts },
   ];
 
-  return { books, sessions, plans, loans };
+  const shelves: Shelf[] = [
+    { id: uid(), name: 'Coups de cœur', emoji: '❤️', createdAt: ts },
+    { id: uid(), name: 'Classiques', emoji: '🏆', createdAt: ts },
+  ];
+  for (const b of books) {
+    const ids: string[] = [];
+    if (b.favorite || (b.rating ?? 0) >= 5) ids.push(shelves[0].id);
+    if (b.genre === 'Classique' || Number(b.publishedYear) < 1950) ids.push(shelves[1].id);
+    if (ids.length) b.shelfIds = ids;
+  }
+
+  return { books, sessions, plans, loans, shelves };
 }

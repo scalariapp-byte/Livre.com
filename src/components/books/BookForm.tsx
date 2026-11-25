@@ -11,7 +11,8 @@ import { compressImage } from '@/lib/image';
 import { isoToDayKey, toDayKey, fromDayKey } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/Toast';
-import type { NewBook } from '@/store/useLibrary';
+import { useLibrary, type NewBook } from '@/store/useLibrary';
+import { Plus } from 'lucide-react';
 
 export type BookDraft = Partial<Book>;
 
@@ -49,7 +50,14 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
     priority: initial.priority,
     price: initial.price !== undefined ? String(initial.price) : '',
     purchaseUrl: initial.purchaseUrl ?? '',
+    series: initial.series ?? '',
+    seriesIndex: initial.seriesIndex ? String(initial.seriesIndex) : '',
+    shelfIds: initial.shelfIds ?? ([] as string[]),
   });
+  const shelves = useLibrary((s) => s.shelves);
+  const addShelf = useLibrary((s) => s.addShelf);
+  const allSeries = useLibrary((s) => [...new Set(s.books.map((b) => b.series).filter(Boolean))] as string[]);
+  const [newShelf, setNewShelf] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showUrl, setShowUrl] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -84,6 +92,7 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
       isbn: v.isbn || undefined,
       publishedYear: v.publishedYear || undefined,
       purchaseUrl: v.purchaseUrl || undefined,
+      series: v.series || undefined,
     });
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
@@ -116,6 +125,9 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
       priority: d.priority,
       price: d.price,
       purchaseUrl: d.purchaseUrl || undefined,
+      series: d.series || undefined,
+      seriesIndex: d.series ? d.seriesIndex : undefined,
+      shelfIds: v.shelfIds,
       subtitle: initial.subtitle,
       language: initial.language,
     });
@@ -179,6 +191,78 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
         <Field label="Pages" error={errors.pageCount}>
           {(id) => <Input id={id} type="number" inputMode="numeric" min={0} value={v.pageCount} onChange={(e) => set('pageCount', e.target.value)} invalid={!!errors.pageCount} placeholder="0" />}
         </Field>
+      </div>
+
+      <div className="grid grid-cols-[1fr_96px] gap-3">
+        <Field label="Série / saga" error={errors.series} optional>
+          {(id) => (
+            <>
+              <Input id={id} list="series-list" value={v.series} onChange={(e) => set('series', e.target.value)} placeholder="Ex. Seasons" />
+              <datalist id="series-list">
+                {allSeries.map((x) => (
+                  <option key={x} value={x} />
+                ))}
+              </datalist>
+            </>
+          )}
+        </Field>
+        <Field label="Tome" error={errors.seriesIndex}>
+          {(id) => <Input id={id} type="number" inputMode="numeric" min={1} value={v.seriesIndex} onChange={(e) => set('seriesIndex', e.target.value)} placeholder="n°" disabled={!v.series} invalid={!!errors.seriesIndex} />}
+        </Field>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[13px] font-medium text-ink-2">Mes collections</p>
+        <div className="flex flex-wrap gap-2">
+          {shelves.map((sh) => {
+            const on = v.shelfIds.includes(sh.id);
+            return (
+              <button
+                key={sh.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => set('shelfIds', on ? v.shelfIds.filter((x) => x !== sh.id) : [...v.shelfIds, sh.id])}
+                className={cn('h-9 rounded-full border px-3.5 text-[13px] font-medium transition active:scale-95', on ? 'border-accent bg-accent/10 text-accent' : 'border-line text-ink-2')}
+              >
+                {sh.emoji ? `${sh.emoji} ` : ''}
+                {sh.name}
+              </button>
+            );
+          })}
+          <div className="flex h-9 items-center rounded-full border border-dashed border-line pl-3 pr-1">
+            <input
+              value={newShelf}
+              onChange={(e) => setNewShelf(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (newShelf.trim()) {
+                    const id = addShelf(newShelf);
+                    set('shelfIds', [...v.shelfIds, id]);
+                    setNewShelf('');
+                  }
+                }
+              }}
+              placeholder="Nouvelle collection"
+              aria-label="Nouvelle collection"
+              className="w-36 bg-transparent text-[13px] outline-none placeholder:text-muted"
+              maxLength={60}
+            />
+            <button
+              type="button"
+              aria-label="Créer la collection"
+              disabled={!newShelf.trim()}
+              onClick={() => {
+                const id = addShelf(newShelf);
+                set('shelfIds', [...v.shelfIds, id]);
+                setNewShelf('');
+              }}
+              className="flex size-7 items-center justify-center rounded-full text-accent disabled:opacity-30"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div>

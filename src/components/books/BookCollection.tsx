@@ -1,5 +1,8 @@
 import { AnimatePresence } from 'framer-motion';
-import { ArrowDownUp, Check, LayoutGrid, List, Search, X } from 'lucide-react';
+import { ArrowDownUp, Check, Layers, LayoutGrid, Library, List, Search, X } from 'lucide-react';
+import { ShelfView } from './ShelfView';
+import { useLibrary } from '@/store/useLibrary';
+import { STATUS_META, STATUS_ORDER } from '@/lib/constants';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Book } from '@/types';
 import { BookRow, BookTile } from './BookCard';
@@ -8,6 +11,17 @@ import { Input } from '@/components/ui/Field';
 import { Menu } from '@/components/ui/Menu';
 import { IconButton } from '@/components/ui/Button';
 import { cn, normalize } from '@/lib/utils';
+
+export type GroupKey = 'none' | 'genre' | 'author' | 'series' | 'shelf' | 'status';
+
+const GROUP_LABELS: Record<GroupKey, string> = {
+  none: 'Sans regroupement',
+  genre: 'Par thème (genre)',
+  author: 'Par auteur',
+  series: 'Par série',
+  shelf: 'Par collection',
+  status: 'Par statut',
+};
 
 export type SortKey = 'added' | 'title' | 'author' | 'rating' | 'progress' | 'finished' | 'priority' | 'pages';
 
@@ -58,17 +72,21 @@ interface Props {
   defaultSort: SortKey;
   empty: ReactNode;
   toolbarExtra?: ReactNode;
-  groupBy?: (b: Book) => string;
+  groupBy?: (b: Book) => string | string[];
+  /** Affiche le menu « Classer par » (thème, auteur, série…). */
+  groupable?: boolean;
   renderMeta?: (b: Book) => ReactNode;
   renderTrailing?: (b: Book) => ReactNode;
   showStatus?: boolean;
 }
 
-export function BookCollection({ books, storageKey, sorts, defaultSort, empty, toolbarExtra, groupBy, renderMeta, renderTrailing, showStatus }: Props) {
+export function BookCollection({ books, storageKey, sorts, defaultSort, empty, toolbarExtra, groupBy, groupable, renderMeta, renderTrailing, showStatus }: Props) {
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('all');
   const [sort, setSort] = useStoredState<SortKey>(`livre-sort-${storageKey}`, defaultSort);
-  const [view, setView] = useStoredState<'grid' | 'list'>(`livre-view-${storageKey}`, 'grid');
+  const [view, setView] = useStoredState<'grid' | 'list' | 'shelf'>(`livre-view-${storageKey}`, 'grid');
+  const [group, setGroup] = useStoredState<GroupKey>(`livre-group-${storageKey}`, groupable ? 'genre' : 'none');
+  const shelves = useLibrary((s) => s.shelves);
 
   const genres = useMemo(() => {
     const map = new Map<string, number>();
@@ -90,14 +108,41 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
   }, [books, query, genre, sort, sorts, defaultSort]);
 
   const groups = useMemo(() => {
-    if (!groupBy) return [{ key: '', items: filtered }];
+    const NONE = '\uffff';
+    const keyOf: ((b: Book) => string | string[]) | undefined =
+      groupBy ??
+      (!groupable || group === 'none'
+        ? undefined
+        : group === 'genre'
+          ? (b) => b.genre || NONE + 'Sans genre'
+          : group === 'author'
+            ? (b) => b.authors[0] || NONE + 'Auteur inconnu'
+            : group === 'series'
+              ? (b) => b.series || NONE + 'Hors série'
+              : group === 'shelf'
+                ? (b) => {
+                    const names = shelves.filter((sh) => b.shelfIds?.includes(sh.id)).map((sh) => `${sh.emoji ?? '📚'} ${sh.name}`);
+                    return names.length ? names : NONE + 'Hors collection';
+                  }
+                : (b) => String(STATUS_ORDER.indexOf(b.status)));
+    if (!keyOf) return [{ key: '', items: filtered }];
     const map = new Map<string, Book[]>();
     for (const b of filtered) {
-      const k = groupBy(b);
-      map.set(k, [...(map.get(k) ?? []), b]);
+      const k = keyOf(b);
+      for (const key of Array.isArray(k) ? k : [k]) map.set(key, [...(map.get(key) ?? []), b]);
     }
-    return [...map.entries()].map(([key, items]) => ({ key, items }));
-  }, [filtered, groupBy]);
+    let entries = [...map.entries()];
+    if (!groupBy) {
+      if (group === 'genre') entries.sort((a, b) => (a[0].startsWith(NONE) ? 1 : b[0].startsWith(NONE) ? -1 : b[1].length - a[1].length || a[0].localeCompare(b[0], 'fr')));
+      else if (group === 'status') entries.sort((a, b) => Number(a[0]) - Number(b[0]));
+      else entries.sort((a, b) => a[0].localeCompare(b[0], 'fr', { sensitivity: 'base' }));
+      if (group === 'series') entries = entries.map(([k, items]) => [k, k.startsWith(NONE) ? items : [...items].sort((x, y) => (x.seriesIndex ?? 999) - (y.seriesIndex ?? 999))]);
+    }
+    return entries.map(([key, items]) => ({
+      key: key.startsWith(NONE) ? key.slice(1) : !groupBy && group === 'status' ? STATUS_META[STATUS_ORDER[Number(key)]].label : key,
+      items,
+    }));
+  }, [filtered, groupBy, groupable, group, shelves]);
 
   if (!books.length) return <>{empty}</>;
 
@@ -113,6 +158,16 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
           )}
         </div>
         {toolbarExtra}
+        {groupable && (
+          <Menu
+            items={(Object.keys(GROUP_LABELS) as GroupKey[]).map((g) => ({ label: GROUP_LABELS[g], icon: g === group ? <Check /> : <span className="inline-block size-4" />, active: g === group, onSelect: () => setGroup(g) }))}
+            trigger={(p) => (
+              <IconButton label={`Classer : ${GROUP_LABELS[group]}`} variant="outline" {...p} className={cn(group !== 'none' && 'border-accent/40 text-accent')}>
+                <Layers className="size-[18px]" />
+              </IconButton>
+            )}
+          />
+        )}
         <Menu
           items={sorts.map((s) => ({ label: SORT_LABELS[s], icon: s === sort ? <Check /> : <span className="inline-block size-4" />, active: s === sort, onSelect: () => setSort(s) }))}
           trigger={(p) => (
@@ -121,9 +176,18 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
             </IconButton>
           )}
         />
-        <IconButton label={view === 'grid' ? 'Affichage liste' : 'Affichage grille'} variant="outline" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
-          {view === 'grid' ? <List className="size-[18px]" /> : <LayoutGrid className="size-[18px]" />}
-        </IconButton>
+<Menu
+          items={[
+            { label: 'Grille', icon: <LayoutGrid />, active: view === 'grid', onSelect: () => setView('grid') },
+            { label: 'Étagères (bibliothèque virtuelle)', icon: <Library />, active: view === 'shelf', onSelect: () => setView('shelf') },
+            { label: 'Liste', icon: <List />, active: view === 'list', onSelect: () => setView('list') },
+          ]}
+          trigger={(p) => (
+            <IconButton label="Affichage" variant="outline" {...p}>
+              {view === 'grid' ? <LayoutGrid className="size-[18px]" /> : view === 'shelf' ? <Library className="size-[18px]" /> : <List className="size-[18px]" />}
+            </IconButton>
+          )}
+        />
       </div>
 
       {genres.length > 1 && (
@@ -133,7 +197,8 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
       )}
 
       <p className="mb-3 text-[13px] text-muted">
-        {filtered.length} livre{filtered.length > 1 ? 's' : ''} · trié par {SORT_LABELS[sorts.includes(sort) ? sort : defaultSort].toLowerCase()}
+        {filtered.length} livre{filtered.length > 1 ? 's' : ''}
+        {groupable && group !== 'none' ? ` · ${GROUP_LABELS[group].toLowerCase()}` : ''} · trié par {SORT_LABELS[sorts.includes(sort) ? sort : defaultSort].toLowerCase()}
       </p>
 
       {filtered.length === 0 ? (
@@ -158,7 +223,9 @@ export function BookCollection({ books, storageKey, sorts, defaultSort, empty, t
                 {g.key} <span className="font-sans text-sm font-medium text-muted">{g.items.length}</span>
               </h3>
             )}
-            {view === 'grid' ? (
+            {view === 'shelf' ? (
+              <ShelfView books={g.items} />
+            ) : view === 'grid' ? (
               <div className="grid grid-cols-3 gap-x-3.5 gap-y-6 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
                 <AnimatePresence mode="popLayout">
                   {g.items.map((b) => (
