@@ -1,9 +1,22 @@
-import { Download, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Download, ShieldCheck, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
-import { APP_VERSION, checkForUpdate, dismiss, isDismissed, openUpdate, type UpdateInfo } from '@/lib/updates';
+import { ProgressBar } from '@/components/ui/Progress';
+import { toast } from '@/components/ui/Toast';
+import {
+  APP_VERSION,
+  InstallPermissionError,
+  canInstallUpdates,
+  checkForUpdate,
+  dismiss,
+  installUpdate,
+  isDismissed,
+  openInstallSettings,
+  openUpdate,
+  type UpdateInfo,
+} from '@/lib/updates';
 import { isNative } from '@/lib/platform';
 import { fmtDate } from '@/lib/dates';
 
@@ -15,75 +28,141 @@ export const useUpdate = create<{ info: UpdateInfo | null; open: boolean; show: 
   close: () => set({ open: false }),
 }));
 
-/** Vérifie silencieusement au démarrage et au retour dans l'application (Android uniquement). */
+type Phase = 'idle' | 'permission' | 'downloading' | 'installing';
+
+/** Vérifie au démarrage / au retour dans l'app, puis télécharge et installe sans quitter l'application. */
 export function UpdateChecker() {
   const { info, open, show, close } = useUpdate();
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [progress, setProgress] = useState(0);
+  const waitingPermission = useRef(false);
+
+  const start = async (u: UpdateInfo) => {
+    setProgress(0);
+    setPhase('downloading');
+    try {
+      await installUpdate(u, setProgress);
+      setPhase('installing'); // l'installateur Android est affiché
+    } catch (e) {
+      if (e instanceof InstallPermissionError) {
+        setPhase('permission');
+        return;
+      }
+      setPhase('idle');
+      toast.error('Téléchargement interrompu', { description: (e as Error).message || 'Vérifiez votre connexion.' });
+    }
+  };
 
   useEffect(() => {
     if (!isNative()) return;
     let last = 0;
-    const run = () => {
-      if (Date.now() - last < 30 * 60_000) return; // au plus toutes les 30 min
+    const check = () => {
+      if (Date.now() - last < 30 * 60_000) return;
       last = Date.now();
       checkForUpdate()
         .then((u) => u && !isDismissed(u.build) && show(u))
-        .catch(() => {}); // hors ligne : on réessaiera plus tard
+        .catch(() => {});
     };
-    run();
+    check();
     let remove: (() => void) | undefined;
     import('@capacitor/app').then(({ App }) =>
-      App.addListener('appStateChange', ({ isActive }) => isActive && run()).then((h) => {
+      App.addListener('appStateChange', async ({ isActive }) => {
+        if (!isActive) return;
+        // Retour des réglages Android après avoir accordé l'autorisation : on reprend.
+        if (waitingPermission.current) {
+          waitingPermission.current = false;
+          const u = useUpdate.getState().info;
+          if (u && (await canInstallUpdates().catch(() => false))) start(u);
+          return;
+        }
+        check();
+      }).then((h) => {
         remove = () => h.remove();
       }),
     );
     return () => remove?.();
-  }, [show]);
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const busy = phase === 'downloading';
 
   return (
-    <Sheet open={open && !!info} onClose={close} size="sm" bare>
+    <Sheet open={open && !!info} onClose={() => !busy && (setPhase('idle'), close())} size="sm" bare>
       {info && (
         <div className="px-6 pb-6 pt-4 text-center sm:pt-7">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-accent/12 text-accent">
-            <Sparkles className="size-7" />
+            {phase === 'permission' ? <ShieldCheck className="size-7" /> : <Sparkles className="size-7" />}
           </div>
-          <h2 className="h-display text-2xl font-semibold">Mise à jour disponible</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            La version <b className="text-ink">{info.version}</b> est sortie le {fmtDate(info.publishedAt)}. Vous avez la version {APP_VERSION}.
-          </p>
-          <p className="mt-3 rounded-2xl bg-surface-2 p-3 text-left text-xs leading-relaxed text-ink-2">
-            Le fichier va se télécharger. Ouvrez-le puis appuyez sur « Mettre à jour ». Vos livres et réglages sont conservés.
-          </p>
-          <div className="mt-5 flex flex-col gap-2">
-            <Button
-              size="lg"
-              block
-              loading={busy}
-              icon={<Download className="size-4" />}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await openUpdate(info);
-                } finally {
-                  setBusy(false);
-                  close();
-                }
-              }}
-            >
-              Mettre à jour
-            </Button>
-            <Button
-              size="lg"
-              block
-              variant="ghost"
-              onClick={() => {
-                dismiss(info.build);
-                close();
-              }}
-            >
-              Plus tard
-            </Button>
-          </div>
+
+          {phase === 'permission' ? (
+            <>
+              <h2 className="h-display text-2xl font-semibold">Une autorisation, une seule fois</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                Pour s'installer elle-même, Livre doit avoir le droit d'installer des applications. Activez <b className="text-ink">« Autoriser cette source »</b>, puis revenez : la mise à jour reprendra
+                automatiquement.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <Button
+                  size="lg"
+                  block
+                  onClick={() => {
+                    waitingPermission.current = true;
+                    openInstallSettings();
+                  }}
+                >
+                  Ouvrir le réglage
+                </Button>
+                <Button size="lg" block variant="ghost" onClick={() => (setPhase('idle'), openUpdate(info))}>
+                  Télécharger avec le navigateur
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="h-display text-2xl font-semibold">{phase === 'installing' ? 'Installation…' : 'Mise à jour disponible'}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                {phase === 'installing' ? (
+                  <>Appuyez sur <b className="text-ink">« Mettre à jour »</b> dans la fenêtre Android. Vos livres sont conservés.</>
+                ) : (
+                  <>
+                    La version <b className="text-ink">{info.version}</b> est sortie le {fmtDate(info.publishedAt)}. Vous avez la version {APP_VERSION}.
+                  </>
+                )}
+              </p>
+
+              {busy && (
+                <div className="mt-5">
+                  <ProgressBar value={progress} />
+                  <p className="mt-2 text-xs tabular-nums text-muted">Téléchargement… {progress} %</p>
+                </div>
+              )}
+
+              <div className="mt-5 flex flex-col gap-2">
+                {phase === 'installing' ? (
+                  <Button size="lg" block variant="outline" onClick={() => start(info)}>
+                    Relancer l'installation
+                  </Button>
+                ) : (
+                  <Button size="lg" block loading={busy} icon={<Download className="size-4" />} onClick={() => start(info)}>
+                    {busy ? 'Téléchargement…' : 'Mettre à jour'}
+                  </Button>
+                )}
+                {!busy && (
+                  <Button
+                    size="lg"
+                    block
+                    variant="ghost"
+                    onClick={() => {
+                      if (phase !== 'installing') dismiss(info.build);
+                      setPhase('idle');
+                      close();
+                    }}
+                  >
+                    {phase === 'installing' ? 'Fermer' : 'Plus tard'}
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </Sheet>
