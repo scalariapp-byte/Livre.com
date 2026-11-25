@@ -1,6 +1,9 @@
 apply plugin: 'com.android.application'
 
 android {
+    buildFeatures {
+        dataBinding true
+    }
     namespace "com.livre.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {

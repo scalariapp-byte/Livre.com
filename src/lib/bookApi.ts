@@ -158,3 +158,14 @@ export async function searchBooks(query: string, signal?: AbortSignal): Promise<
     throw e;
   }
 }
+
+/** Vérifie un code EAN-13 de livre (préfixe 978/979 et clé de contrôle). */
+export function isValidIsbn13(code: string): boolean {
+  const c = cleanIsbn(code);
+  if (!/^97[89]\d{10}$/.test(c)) return false;
+  const sum = c
+    .slice(0, 12)
+    .split('')
+    .reduce((s, d, i) => s + Number(d) * (i % 2 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === Number(c[12]);
+}

@@ -48,3 +48,19 @@ describe('stats', () => {
     expect(r.ahead).toBeLessThan(0.5);
   });
 });
+
+import { isValidIsbn13 } from '@/lib/bookApi';
+import { pickIsbn } from '@/lib/scanner';
+
+describe('ISBN', () => {
+  it('valide la clé de contrôle EAN-13', () => {
+    expect(isValidIsbn13('9780441172719')).toBe(true);
+    expect(isValidIsbn13('978-2-07-036002-4')).toBe(true);
+    expect(isValidIsbn13('9780441172718')).toBe(false);
+    expect(isValidIsbn13('3017620422003')).toBe(false); // EAN alimentaire
+  });
+  it('choisit l’ISBN parmi plusieurs codes lus', () => {
+    expect(pickIsbn(['52499', '9780441172719'])).toBe('9780441172719');
+    expect(pickIsbn(['3017620422003'])).toBeNull();
+  });
+});

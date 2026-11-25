@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, BookPlus, Globe, PenLine, ScanLine, Search, WifiOff } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, BookPlus, Globe, PenLine, ScanBarcode, ScanLine, Search, WifiOff } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sheet } from '@/components/ui/Sheet';
 import { Input } from '@/components/ui/Field';
@@ -13,7 +13,9 @@ import { BookForm, type BookDraft } from './BookForm';
 import { useUI } from '@/store/useUI';
 import { useLibrary, type NewBook } from '@/store/useLibrary';
 import { useDebounced } from '@/lib/hooks';
-import { fetchOpenLibraryDescription, isIsbn, searchBooks, type BookSearchResult } from '@/lib/bookApi';
+import { cleanIsbn, fetchOpenLibraryDescription, isIsbn, searchBooks, type BookSearchResult } from '@/lib/bookApi';
+import { canScanNative, scanIsbnNative } from '@/lib/scanner';
+import { WebScanner } from './WebScanner';
 import { STATUS_META } from '@/lib/constants';
 import { normalize } from '@/lib/utils';
 
@@ -33,6 +35,10 @@ export function AddBookSheet() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounced = useDebounced(query, 450);
+  const [webScan, setWebScan] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  /** ISBN issu d'un scan : on ouvre directement la fiche du premier résultat. */
+  const scannedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -41,6 +47,7 @@ export function AddBookSheet() {
       setDraft(null);
       setResults([]);
       setError(null);
+      scannedRef.current = null;
     }
   }, [open]);
 
@@ -57,7 +64,13 @@ export function AddBookSheet() {
     setLoading(true);
     setError(null);
     searchBooks(q, ctrl.signal)
-      .then((r) => setResults(r))
+      .then((r) => {
+        setResults(r);
+        if (scannedRef.current && cleanIsbn(q) === scannedRef.current) {
+          scannedRef.current = null;
+          if (r.length) pick({ ...r[0], isbn: r[0].isbn ?? cleanIsbn(q) });
+        }
+      })
       .catch((e: Error) => {
         if (e.name !== 'AbortError') setError(e.message || 'Recherche impossible');
       })
@@ -78,6 +91,28 @@ export function AddBookSheet() {
 
   const isOwned = (r: { isbn?: string; title: string; authors: string[] }) =>
     (r.isbn && owned.has(r.isbn)) || owned.has(normalize(r.title + '|' + (r.authors[0] ?? '')));
+
+  const onScanned = useCallback((isbn: string) => {
+    setWebScan(false);
+    scannedRef.current = isbn;
+    setQuery(isbn);
+    toast.success(`ISBN ${isbn} détecté`, { description: 'Recherche du livre…' });
+  }, []);
+
+  const startScan = async () => {
+    if (!canScanNative()) return setWebScan(true);
+    setScanning(true);
+    try {
+      const isbn = await scanIsbnNative((msg) => toast.info(msg));
+      if (isbn) onScanned(isbn);
+    } catch (e) {
+      toast.error('Scan impossible', { description: (e as Error).message });
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const manualDraft = (): BookDraft => (isIsbn(query) ? { isbn: cleanIsbn(query), status: status ?? 'toread' } : { title: query, status: status ?? 'toread' });
 
   const pick = async (r: BookSearchResult) => {
     const base: BookDraft = {
@@ -139,15 +174,22 @@ export function AddBookSheet() {
               ]}
               className="mb-4 w-full"
             />
-            <Input
-              leading={<Search className="size-[18px]" />}
-              placeholder="Titre, auteur, ISBN…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoComplete="off"
-              enterKeyHint="search"
-              data-autofocus
-            />
+            <div className="flex gap-2">
+              <div className="min-w-0 flex-1">
+                <Input
+                  leading={<Search className="size-[18px]" />}
+                  placeholder="Titre, auteur, ISBN…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  autoComplete="off"
+                  enterKeyHint="search"
+                  data-autofocus
+                />
+              </div>
+              <Button variant="soft" className="!h-[46px] shrink-0" icon={<ScanBarcode className="size-5" />} loading={scanning} onClick={startScan} aria-label="Scanner le code-barres">
+                <span className="hidden sm:inline">Scanner</span>
+              </Button>
+            </div>
             {isIsbn(query) && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
                 <ScanLine className="size-3.5" /> Recherche par ISBN
@@ -174,7 +216,7 @@ export function AddBookSheet() {
                   </div>
                   <p className="font-semibold">Recherche indisponible</p>
                   <p className="mt-1 max-w-xs text-sm text-muted">{error}</p>
-                  <Button variant="soft" className="mt-4" icon={<PenLine className="size-4" />} onClick={() => setDraft({ title: query, status: status ?? 'toread' })}>
+                  <Button variant="soft" className="mt-4" icon={<PenLine className="size-4" />} onClick={() => setDraft(manualDraft())}>
                     Saisir manuellement
                   </Button>
                 </div>
@@ -204,20 +246,24 @@ export function AddBookSheet() {
                 <div className="py-12 text-center">
                   <p className="font-semibold">Aucun résultat</p>
                   <p className="mt-1 text-sm text-muted">Essayez un autre titre ou ajoutez le livre à la main.</p>
-                  <Button variant="soft" className="mt-4" icon={<PenLine className="size-4" />} onClick={() => setDraft({ title: query, status: status ?? 'toread' })}>
+                  <Button variant="soft" className="mt-4" icon={<PenLine className="size-4" />} onClick={() => setDraft(manualDraft())}>
                     Saisir manuellement
                   </Button>
                 </div>
               ) : (
-                <div className="py-12 text-center text-sm text-muted">
+                <div className="py-10 text-center text-sm text-muted">
                   <Search className="mx-auto mb-3 size-8 opacity-40" />
                   Les informations et la couverture seront importées automatiquement.
+                  <button type="button" onClick={startScan} className="mx-auto mt-5 flex items-center gap-2 rounded-2xl border border-dashed border-line px-5 py-3 font-semibold text-ink-2 transition hover:border-accent hover:text-accent">
+                    <ScanBarcode className="size-5" /> Scanner le code-barres du livre
+                  </button>
                 </div>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      <WebScanner open={webScan} onClose={() => setWebScan(false)} onResult={onScanned} />
     </Sheet>
   );
 }
