@@ -16,6 +16,17 @@ export async function saveFile(filename: string, content: string, mime: string):
     return;
   }
   const blob = new Blob([content], { type: mime });
+  // iPhone / iPad : la feuille de partage permet « Enregistrer dans Fichiers » (iCloud Drive…).
+  try {
+    const file = new File([blob], filename, { type: mime });
+    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent) && nav.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    }
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw new Error('cancel');
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

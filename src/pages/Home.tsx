@@ -15,7 +15,10 @@ import { diffDays, fmtMonth, fmtWeekday, fromDayKey, greeting, monthGrid, relati
 import type { ReadingPlan, ReadingSession } from '@/types';
 import { isIOS, promptInstall, useInstall } from '@/lib/install';
 import { isNative } from '@/lib/platform';
-import { useState as useStateInstall } from 'react';
+import { useEffect as useEffectBackup, useState as useStateInstall } from 'react';
+import { markExported, needsExportReminder } from '@/lib/autoBackup';
+import { saveFile } from '@/lib/platform';
+import { toast } from '@/components/ui/Toast';
 import { bookPercent, cn, formatMinutes, percent, plural } from '@/lib/utils';
 import type { Book } from '@/types';
 
@@ -230,6 +233,49 @@ function InstallBanner() {
   );
 }
 
+/** Rappel hebdomadaire : enregistrer la sauvegarde hors de l'app (iPhone / web). */
+function BackupReminder() {
+  const [show, setShow] = useStateInstall(false);
+  useEffectBackup(() => {
+    needsExportReminder().then(setShow).catch(() => {});
+  }, []);
+  if (!show) return null;
+  const save = async () => {
+    const data = useLibrary.getState().exportBackup();
+    try {
+      await saveFile(`livre-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data), 'application/json');
+      await markExported();
+      setShow(false);
+      toast.success('Sauvegarde enregistrée', { description: 'Gardez-la dans Fichiers ou iCloud Drive.' });
+    } catch (e) {
+      if ((e as Error).message !== 'cancel') toast.error('Sauvegarde impossible');
+    }
+  };
+  return (
+    <div className="mb-5 flex items-center gap-3 rounded-2xl bg-info/10 p-3.5">
+      <span className="text-2xl">💾</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">Sauvegarde de la semaine</p>
+        <p className="text-xs text-muted">Un appui pour garder une copie de vos livres dans Fichiers / iCloud.</p>
+      </div>
+      <Button size="sm" onClick={save}>
+        Sauvegarder
+      </Button>
+      <button
+        type="button"
+        aria-label="Plus tard"
+        onClick={() => {
+          markExported();
+          setShow(false);
+        }}
+        className="px-1 text-lg text-muted"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 const QUICK = [
   { to: '/to-read', label: 'À lire', icon: BookmarkPlus },
   { to: '/wishlist', label: 'Souhaits', icon: Gift },
@@ -299,6 +345,7 @@ export function Home() {
       </header>
 
       <InstallBanner />
+      <BackupReminder />
 
       {/* Raccourcis vers toutes les pages */}
       <nav aria-label="Raccourcis" className="scrollbar-none -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0 lg:hidden">

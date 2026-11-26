@@ -140,6 +140,8 @@ export interface Settings {
   dailyMinutesGoal: number;
   notifications: boolean;
   reduceMotion: boolean;
+  /** Sauvegarde automatique quotidienne (activée par défaut). */
+  autoBackup?: boolean;
   onboarded: boolean;
   createdAt: string;
 }

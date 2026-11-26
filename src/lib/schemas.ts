@@ -217,6 +217,7 @@ export const backupSchema = z.object({
         dailyMinutesGoal: z.number(),
         notifications: z.boolean(),
         reduceMotion: z.boolean().default(false),
+        autoBackup: z.boolean().optional(),
         onboarded: z.boolean(),
         createdAt: z.string(),
       })

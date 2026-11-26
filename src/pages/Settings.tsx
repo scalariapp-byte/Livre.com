@@ -19,6 +19,8 @@ import { THEMES } from '@/lib/themes';
 import { APP_VERSION, checkForUpdate, openUpdate } from '@/lib/updates';
 import { useUpdate } from '@/components/UpdateChecker';
 import { isIOS, promptInstall, useInstall } from '@/lib/install';
+import { getMeta, listSnapshots, markExported, restoreSnapshot, runAutoBackup, type BackupMeta, type Snapshot } from '@/lib/autoBackup';
+import { History } from 'lucide-react';
 import type { Accent, ThemeMode } from '@/types';
 
 function Group({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
@@ -58,6 +60,13 @@ export function SettingsPage() {
   const [pending, setPending] = useState<Backup | null>(null);
   const [usage, setUsage] = useState<string | null>(null);
   const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [backupMeta, setBackupMeta] = useState<BackupMeta>({});
+  const refreshBackups = () => {
+    listSnapshots().then(setSnapshots).catch(() => {});
+    getMeta().then(setBackupMeta).catch(() => {});
+  };
+  useEffect(refreshBackups, []);
   const [checking, setChecking] = useState(false);
   const showUpdate = useUpdate((s) => s.show);
   const installEvent = useInstall((s) => s.promptEvent);
@@ -100,6 +109,7 @@ export function SettingsPage() {
     const data = exportBackup();
     try {
       await saveFile(`livre-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2), 'application/json');
+      await markExported();
       toast.success('Sauvegarde exportée', { description: `${books.length} livres, ${sessions.length} sessions` });
     } catch (e) {
       if (!/cancel/i.test((e as Error).message ?? '')) toast.error('Export impossible', { description: (e as Error).message });
@@ -245,6 +255,55 @@ export function SettingsPage() {
           <Row title="Rappels" description="Retours de prêts, lectures planifiées. Les rappels apparaissent aussi dans la cloche de l'app.">
             <Switch label="Rappels" checked={settings.notifications} onChange={requestNotifications} />
           </Row>
+        </Group>
+
+        <Group title="Sauvegarde automatique" icon={<History />}>
+          <Row
+            title="Sauvegarde chaque jour"
+            description={
+              isNative()
+                ? 'Une copie par jour dans l’app et dans Documents/Livre sur le téléphone (7 derniers jours).'
+                : 'Une copie par jour dans l’app (7 derniers jours) et un rappel chaque semaine pour l’enregistrer dans Fichiers / iCloud.'
+            }
+          >
+            <Switch label="Sauvegarde automatique" checked={settings.autoBackup !== false} onChange={(v) => updateSettings({ autoBackup: v })} />
+          </Row>
+          <Row
+            title="Sauvegarder maintenant"
+            description={
+              backupMeta.lastAuto
+                ? `Dernière sauvegarde : ${new Date(backupMeta.lastAuto).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}${
+                    isNative() ? (backupMeta.fileError ? ' · fichier non écrit (' + backupMeta.fileError + ')' : backupMeta.lastFile ? ' · fichier dans Documents/Livre' : '') : ''
+                  }`
+                : 'Aucune sauvegarde pour l’instant.'
+            }
+            onClick={async () => {
+              await runAutoBackup(true);
+              refreshBackups();
+              toast.success('Sauvegarde effectuée');
+            }}
+          >
+            <History className="size-5 text-accent" />
+          </Row>
+          {snapshots.map((sn) => (
+            <Row key={sn.at} title={new Date(sn.at).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} description={`${sn.books} livre${sn.books > 1 ? 's' : ''}`}>
+              <Button
+                size="sm"
+                variant="soft"
+                onClick={async () => {
+                  if (!(await confirm({ title: 'Restaurer cette sauvegarde ?', message: 'Vos données actuelles seront remplacées par celles de cette date.', danger: true, confirmLabel: 'Restaurer' }))) return;
+                  try {
+                    await restoreSnapshot(sn.at);
+                    toast.success('Sauvegarde restaurée');
+                  } catch (e) {
+                    toast.error('Restauration impossible', { description: (e as Error).message });
+                  }
+                }}
+              >
+                Restaurer
+              </Button>
+            </Row>
+          ))}
         </Group>
 
         <Group title="Données" icon={<Database />}>

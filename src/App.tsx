@@ -11,6 +11,7 @@ import { ShelfPicker } from '@/components/books/ShelfPicker';
 import { GlobalCoverPicker } from '@/components/books/CoverPicker';
 import { AutoCovers, AutoGenres, SpineColors } from '@/components/AutoCovers';
 import { BadgeWatcher, Celebration } from '@/components/Celebration';
+import { AutoBackupRunner } from '@/components/AutoBackupRunner';
 import { Toaster } from '@/components/ui/Toast';
 import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
@@ -104,6 +105,7 @@ export default function App() {
             <AutoGenres />
             <Celebration />
             <BadgeWatcher />
+            <AutoBackupRunner />
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />
