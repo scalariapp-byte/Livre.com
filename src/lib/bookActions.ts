@@ -8,8 +8,9 @@ import { useUI } from '@/store/useUI';
 /** Ouvre le bilan de lecture après un passage à « Terminé » (si aucun bilan n'existe encore). */
 export function promptReflection(bookId: string) {
   const book = useLibrary.getState().books.find((b) => b.id === bookId);
-  if (!book || book.status !== 'finished' || book.reflection) return;
-  setTimeout(() => useUI.getState().setReflection(bookId), 450);
+  if (!book || book.status !== 'finished') return;
+  // Animation de fin de livre d'abord ; le bilan est proposé ensuite depuis la célébration.
+  setTimeout(() => useUI.getState().setCelebrate(bookId), 350);
 }
 
 /** Supprime un livre après confirmation, avec possibilité d'annuler. */

@@ -53,6 +53,11 @@ interface Actions {
   setPercent: (id: string, pct: number, opts?: { minutes?: number; date?: string }) => void;
   saveReflection: (id: string, r: Omit<Reflection, 'createdAt' | 'updatedAt'>) => void;
 
+  setPlacement: (id: string, pos: { x: number; y: number }) => void;
+  toggleDecor: (id: string, hidden: boolean) => void;
+  setSky: (sky: string) => void;
+  resetRoom: () => void;
+  unlockBadges: (ids: string[]) => void;
   addShelf: (name: string, emoji?: string) => string;
   updateShelf: (id: string, patch: Partial<Pick<Shelf, 'name' | 'emoji'>>) => void;
   deleteShelf: (id: string) => void;
@@ -106,6 +111,8 @@ const emptyData = (): LibraryData => ({
   plans: [],
   loans: [],
   shelves: [],
+  room: { placements: {} },
+  badges: {},
   settings: defaultSettings(),
   timer: null,
   dismissedAlerts: [],
@@ -272,6 +279,23 @@ export const useLibrary = create<LibraryState>()(
           ),
         })),
 
+      setPlacement: (id, pos) =>
+        set((s) => ({ room: { ...s.room, placements: { ...s.room.placements, [id]: { ...s.room.placements[id], ...pos } } } })),
+      toggleDecor: (id, hidden) =>
+        set((s) => {
+          const cur = s.room.placements[id];
+          return { room: { ...s.room, placements: { ...s.room.placements, [id]: { x: cur?.x ?? -1, y: cur?.y ?? -1, hidden } } } };
+        }),
+      setSky: (sky) => set((s) => ({ room: { ...s.room, sky } })),
+      resetRoom: () => set((s) => ({ room: { placements: {}, sky: s.room.sky } })),
+      unlockBadges: (ids) =>
+        set((s) => {
+          const at = now();
+          const badges = { ...s.badges };
+          for (const id of ids) badges[id] ??= at;
+          return { badges };
+        }),
+
       addShelf: (name, emoji) => {
         const id = uid();
         set((s) => ({ shelves: [...s.shelves, { id, name: name.trim().slice(0, 60), emoji, createdAt: now() }] }));
@@ -355,12 +379,12 @@ export const useLibrary = create<LibraryState>()(
       markNotified: (ids) => set((s) => ({ notifiedAlerts: [...new Set([...s.notifiedAlerts, ...ids])].slice(-500) })),
 
       exportBackup: () => {
-        const { books, sessions, plans, loans, shelves, settings } = get();
+        const { books, sessions, plans, loans, shelves, room, badges, settings } = get();
         return {
           app: 'livre',
           version: DATA_VERSION,
           exportedAt: now(),
-          data: { books, sessions, plans, loans, shelves, settings },
+          data: { books, sessions, plans, loans, shelves, room, badges, settings },
         };
       },
 
@@ -373,6 +397,8 @@ export const useLibrary = create<LibraryState>()(
             plans: d.plans,
             loans: d.loans,
             shelves: d.shelves,
+            room: d.room,
+            badges: d.badges,
             settings: { ...s.settings, ...d.settings, onboarded: true },
             timer: null,
             dismissedAlerts: [],

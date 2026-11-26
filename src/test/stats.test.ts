@@ -92,3 +92,29 @@ describe('couvertures', () => {
     expect(hiResCover('https://covers.openlibrary.org/b/id/1-L.jpg')).toBe('https://covers.openlibrary.org/b/id/1-L.jpg');
   });
 });
+
+import { badgeStates, computeMetrics, nextDecor, unlockedDecor } from '@/lib/rewards';
+
+describe('récompenses', () => {
+  it('débloque un élément de décor à chaque palier de livres terminés', () => {
+    expect(unlockedDecor(0)).toHaveLength(0);
+    expect(unlockedDecor(1).map((d) => d.id)).toEqual(['cat']);
+    expect(unlockedDecor(3).map((d) => d.id)).toEqual(['cat', 'plant', 'house']);
+    expect(nextDecor(3)?.id).toBe('tree');
+  });
+  it('calcule les badges à partir des données', () => {
+    const books = [
+      { id: 'a', status: 'finished', pageCount: 520, genre: 'Romance', series: 'S', authors: [] },
+      { id: 'b', status: 'finished', pageCount: 300, genre: 'Policier', series: 'S', authors: [] },
+    ] as never[];
+    const sessions = [
+      { id: '1', bookId: 'a', date: '2026-01-01', pagesRead: 120, minutes: 70, createdAt: '2026-01-01T23:30:00' },
+      { id: '2', bookId: 'a', date: '2026-01-02', pagesRead: 40, minutes: 0, createdAt: '2026-01-02T12:00:00' },
+    ] as never[];
+    const m = computeMetrics(books, sessions, { yearlyGoal: 0 } as never);
+    expect(m).toMatchObject({ books: 2, pages: 160, minutes: 70, streak: 2, bestDay: 120, bigBook: 520, genres: 2, series: 1, nightOwl: 1 });
+    const earned = badgeStates(m).filter((b) => b.earned).map((b) => b.id);
+    expect(earned).toEqual(expect.arrayContaining(['books-1', 'pages-100', 'time-60', 'bigday', 'bigbook', 'series-1', 'night']));
+    expect(earned).not.toContain('books-5');
+  });
+});

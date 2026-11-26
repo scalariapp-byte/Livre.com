@@ -195,6 +195,13 @@ export const backupSchema = z.object({
         createdAt: z.string(),
       }),
     ),
+    room: z
+      .object({
+        placements: z.record(z.object({ x: z.number(), y: z.number(), hidden: z.boolean().optional() })).default({}),
+        sky: optStr,
+      })
+      .default({ placements: {} }),
+    badges: z.record(z.string()).default({}),
     shelves: z.array(z.object({ id: z.string(), name: z.string(), emoji: optStr, createdAt: z.string() })).default([]),
     settings: z
       .object({

@@ -1,4 +1,4 @@
-import { BarChart3, BookCheck, BookOpen, BookmarkPlus, CalendarDays, FolderHeart, Gift, Library, Repeat2, Settings } from 'lucide-react';
+import { BarChart3, BookCheck, BookOpen, Cat, BookmarkPlus, CalendarDays, FolderHeart, Gift, Library, Repeat2, Settings } from 'lucide-react';
 
 export const NAV = [
   { to: '/', label: 'Accueil', icon: BookOpen },
@@ -9,6 +9,7 @@ export const NAV = [
   { to: '/loans', label: 'Prêts & emprunts', short: 'Prêts', icon: Repeat2 },
   { to: '/calendar', label: 'Calendrier', icon: CalendarDays },
   { to: '/finished', label: 'Livres lus', icon: BookCheck },
+  { to: '/room', label: 'Mon coin lecture', short: 'Mon coin', icon: Cat },
   { to: '/stats', label: 'Statistiques', icon: BarChart3 },
   { to: '/settings', label: 'Profil & réglages', short: 'Profil', icon: Settings },
 ] as const;

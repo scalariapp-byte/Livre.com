@@ -10,6 +10,7 @@ import { ReflectionSheet } from '@/components/books/ReflectionSheet';
 import { ShelfPicker } from '@/components/books/ShelfPicker';
 import { GlobalCoverPicker } from '@/components/books/CoverPicker';
 import { AutoCovers, AutoGenres, SpineColors } from '@/components/AutoCovers';
+import { BadgeWatcher, Celebration } from '@/components/Celebration';
 import { Toaster } from '@/components/ui/Toast';
 import { ConfirmHost } from '@/components/ui/Confirm';
 import { Skeleton } from '@/components/ui/misc';
@@ -30,6 +31,7 @@ const StatsPage = lazy(() => import('@/pages/Stats').then((m) => ({ default: m.S
 const CollectionsPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.CollectionsPage })));
 const SeriesPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.SeriesPage })));
 const ShelfPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.ShelfPage })));
+const RoomPage = lazy(() => import('@/pages/RoomPage').then((m) => ({ default: m.RoomPage })));
 const SettingsPage = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.SettingsPage })));
 
 function PageFallback() {
@@ -84,6 +86,7 @@ export default function App() {
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="finished" element={<FinishedPage />} />
                   <Route path="stats" element={<StatsPage />} />
+                  <Route path="room" element={<RoomPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="book/:id" element={<BookDetail />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
@@ -99,6 +102,8 @@ export default function App() {
             <AutoCovers />
             <SpineColors />
             <AutoGenres />
+            <Celebration />
+            <BadgeWatcher />
             <NotificationsSheet />
             <CommandPalette />
             <AlertsWatcher />

@@ -11,6 +11,9 @@ interface UIState {
   reflectionBookId: string | null;
   shelfPickerBookId: string | null;
   coverPickerBookId: string | null;
+  celebrateBookId: string | null;
+  /** Badges obtenus récemment (affichés dans la célébration). */
+  recentBadges: { ids: string[]; at: number };
   openAddBook: (status?: ReadingStatus, extra?: { query?: string; series?: { name: string; index: number } }) => void;
   closeAddBook: () => void;
   setEditBook: (id: string | null) => void;
@@ -21,6 +24,8 @@ interface UIState {
   setReflection: (id: string | null) => void;
   setShelfPicker: (id: string | null) => void;
   setCoverPicker: (id: string | null) => void;
+  setCelebrate: (id: string | null) => void;
+  setRecentBadges: (ids: string[]) => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -33,6 +38,8 @@ export const useUI = create<UIState>((set) => ({
   reflectionBookId: null,
   shelfPickerBookId: null,
   coverPickerBookId: null,
+  celebrateBookId: null,
+  recentBadges: { ids: [], at: 0 },
   openAddBook: (status, extra) => set({ addBook: { open: true, status, ...extra } }),
   closeAddBook: () => set((s) => ({ addBook: { ...s.addBook, open: false } })),
   setEditBook: (id) => set({ editBookId: id }),
@@ -43,4 +50,6 @@ export const useUI = create<UIState>((set) => ({
   setReflection: (id) => set({ reflectionBookId: id }),
   setShelfPicker: (id) => set({ shelfPickerBookId: id }),
   setCoverPicker: (id) => set({ coverPickerBookId: id }),
+  setCelebrate: (id) => set({ celebrateBookId: id }),
+  setRecentBadges: (ids) => set({ recentBadges: { ids, at: Date.now() } }),
 }));

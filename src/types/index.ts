@@ -149,6 +149,12 @@ export interface ActiveTimer {
   startPage: number;
 }
 
+/** Coin lecture : position des éléments de décor (en % de la scène). */
+export interface RoomState {
+  placements: Record<string, { x: number; y: number; hidden?: boolean }>;
+  sky?: string;
+}
+
 export interface LibraryData {
   version: number;
   books: Book[];
@@ -156,6 +162,9 @@ export interface LibraryData {
   plans: ReadingPlan[];
   loans: Loan[];
   shelves: Shelf[];
+  room: RoomState;
+  /** Badges obtenus (identifiant → date d'obtention). */
+  badges: Record<string, string>;
   settings: Settings;
   timer: ActiveTimer | null;
   dismissedAlerts: string[];
