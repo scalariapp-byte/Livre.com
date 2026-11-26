@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Hand, Pencil, Timer } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LOOKS, PetSprite, type PetAction } from '@/components/PetSprite';
+import { PetRoom } from '@/components/PetRoom';
 import { useNavigate } from 'react-router-dom';
 import { useLibrary } from '@/store/useLibrary';
 import { useUI } from '@/store/useUI';
@@ -170,13 +171,12 @@ export function PetTab() {
           </motion.div>
         </AnimatePresence>
 
-        <button type="button" onClick={caress} aria-label={`Caresser ${pet.name}`} className="relative mx-auto mt-3 flex h-56 w-full max-w-sm items-end justify-center overflow-hidden outline-none">
+        <button type="button" onClick={caress} aria-label={`Caresser ${pet.name}`} className="relative mt-3 flex h-64 w-full items-end justify-center overflow-hidden rounded-3xl outline-none ring-1 ring-black/10 sm:h-72">
           {/* Coussin */}
-          <span className="absolute bottom-1 h-9 w-72 rounded-[50%] bg-accent/15 blur-[1px]" />
-          <span className="absolute bottom-3 h-6 w-56 rounded-[50%] bg-accent/25" />
+          <PetRoom night={st.mood === 'sleepy'} />
           {LOOKS[pet.species] ? (
             <motion.div
-              className="relative mb-1"
+              className="relative mb-[2%]"
               animate={{ x: walk.x }}
               transition={{ duration: walk.duration, ease: 'linear' }}
             >
