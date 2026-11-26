@@ -310,7 +310,7 @@ export function PetSprite({ species, coat, action, size = 180, head, side }: Pro
       {head && (
         <motion.span
           className="pointer-events-none absolute leading-none"
-          style={{ top: size * (sleeping ? 0.36 : 0.1), left: sleeping ? '35%' : '50%', translateX: '-50%', fontSize: size * 0.2 }}
+          style={{ top: size * (sleeping ? (species === 'cat' ? 0.27 : 0.36) : 0.1), left: sleeping ? (species === 'cat' ? '33%' : '35%') : '50%', translateX: '-50%', fontSize: size * 0.2 }}
           animate={walking ? { y: [0, -3, 0] } : {}}
           transition={{ duration: 0.5, repeat: Infinity }}
         >
