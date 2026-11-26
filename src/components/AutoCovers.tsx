@@ -86,3 +86,50 @@ export function SpineColors() {
 
   return null;
 }
+
+/**
+ * Trouve le genre des livres qui n'en ont pas : catégories Google Books (ISBN, puis titre + auteur),
+ * sinon indices dans le résumé. Chaque livre n'est traité qu'une fois.
+ */
+export function AutoGenres() {
+  const pending = useLibrary((s) => s.books.filter((b) => !b.genre && !b.genreChecked).length);
+  const running = useRef(false);
+
+  useEffect(() => {
+    if (!pending || running.current || !navigator.onLine) return;
+    running.current = true;
+    let cancelled = false;
+    (async () => {
+      const { mapGenre, guessGenreFromText } = await import('@/lib/constants');
+      const queue = useLibrary.getState().books.filter((b) => !b.genre && !b.genreChecked).slice(0, 20);
+      for (const b of queue) {
+        if (cancelled) break;
+        let genre: string | undefined;
+        try {
+          const q = b.isbn ? `isbn:${b.isbn}` : `intitle:${b.title}${b.authors[0] ? ` inauthor:${b.authors[0]}` : ''}`;
+          const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`);
+          if (res.ok) {
+            const data = (await res.json()) as { items?: { volumeInfo: { categories?: string[]; description?: string } }[] };
+            for (const it of data.items ?? []) {
+              genre = mapGenre(it.volumeInfo.categories) ?? guessGenreFromText(it.volumeInfo.description);
+              if (genre) break;
+            }
+          }
+        } catch {
+          /* hors ligne : on se contente des indices locaux */
+        }
+        genre ??= guessGenreFromText(b.description, b.subtitle, b.series);
+        const still = useLibrary.getState().books.find((x) => x.id === b.id);
+        if (still && !still.genre) useLibrary.getState().patchBook(b.id, { genre, genreChecked: true });
+        await new Promise((r) => setTimeout(r, 900));
+      }
+      running.current = false;
+    })();
+    return () => {
+      cancelled = true;
+      running.current = false;
+    };
+  }, [pending]);
+
+  return null;
+}

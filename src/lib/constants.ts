@@ -64,6 +64,23 @@ const GENRE_MAP: [RegExp, string][] = [
   [/fiction|roman|novel|literary/i, 'Roman'],
 ];
 
+/** Devine un genre d'après un texte libre (résumé, collection), en dernier recours. */
+const TEXT_HINTS: [RegExp, string][] = [
+  [/new romance|dark romance|romantasy|romance|histoire d'amour|tomber amoureu|coup de foudre/i, 'Romance'],
+  [/enquête|enquêteur|inspecteur|commissaire|meurtre|assassinat|détective|polar/i, 'Policier'],
+  [/thriller|suspense|psychopathe|tueur en série/i, 'Thriller'],
+  [/dragon|sorcier|sorcière|magie|royaume|elfe|fée/i, 'Fantasy'],
+  [/vaisseau|planète|galaxie|extraterrestre|futur|robot|intelligence artificielle/i, 'Science-fiction'],
+  [/horreur|épouvante|fantôme|démon|hanté/i, 'Horreur'],
+];
+
+export function guessGenreFromText(...texts: (string | undefined)[]): string | undefined {
+  const t = texts.filter(Boolean).join(' ');
+  if (!t) return undefined;
+  for (const [re, g] of TEXT_HINTS) if (re.test(t)) return g;
+  return undefined;
+}
+
 export function mapGenre(categories?: string[] | string): string | undefined {
   const list = Array.isArray(categories) ? categories : categories ? [categories] : [];
   for (const cat of list) {

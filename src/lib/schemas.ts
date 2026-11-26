@@ -115,6 +115,7 @@ const bookSchema = z.object({
   currentPage: z.number().default(0),
   percent: z.number().optional(),
   coverChecked: z.boolean().optional(),
+  genreChecked: z.boolean().optional(),
   spineColor: optStr,
   order: z.number().optional(),
   spineFor: optStr,

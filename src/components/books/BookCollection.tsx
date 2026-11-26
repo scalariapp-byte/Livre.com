@@ -3,6 +3,7 @@ import { ArrowDownUp, BookCopy, Check, Hand, Layers, LayoutGrid, Library, List, 
 import { ShelfView } from './ShelfView';
 import { SpineView } from './SpineView';
 import { useLibrary } from '@/store/useLibrary';
+import { toast } from '@/components/ui/Toast';
 import { STATUS_META, STATUS_ORDER } from '@/lib/constants';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Book } from '@/types';
@@ -12,6 +13,9 @@ import { Input } from '@/components/ui/Field';
 import { Menu } from '@/components/ui/Menu';
 import { IconButton } from '@/components/ui/Button';
 import { cn, normalize } from '@/lib/utils';
+
+/** Rayons proposés en mode rangement, même vides, pour y déposer des livres. */
+const MAIN_GENRES = ['Romance', 'Policier', 'Thriller', 'Fantasy', 'Science-fiction', 'Roman', 'Horreur', 'Jeunesse', 'BD & Manga', 'Développement personnel'];
 
 export type GroupKey = 'none' | 'genre' | 'author' | 'series' | 'shelf' | 'status';
 
@@ -87,11 +91,12 @@ export function BookCollection({ books, storageKey, sorts: sortsProp, defaultSor
   const sorts: SortKey[] = sortsProp.includes('manual') ? sortsProp : ['manual', ...sortsProp];
   const [arranging, setArranging] = useState(false);
   const setOrder = useLibrary((s) => s.setOrder);
+  const patchBook = useLibrary((s) => s.patchBook);
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('all');
   const [sort, setSort] = useStoredState<SortKey>(`livre-sort-${storageKey}`, defaultSort);
   const [view, setView] = useStoredState<'grid' | 'list' | 'shelf' | 'spines'>(`livre-view2-${storageKey}`, groupable ? 'spines' : 'grid');
-  const [group, setGroup] = useStoredState<GroupKey>(`livre-group-${storageKey}`, groupable ? 'genre' : 'none');
+  const [group, setGroup] = useStoredState<GroupKey>(`livre-group2-${storageKey}`, groupable ? 'genre' : 'none');
   const shelves = useLibrary((s) => s.shelves);
 
   const genres = useMemo(() => {
@@ -222,7 +227,11 @@ export function BookCollection({ books, storageKey, sorts: sortsProp, defaultSor
       {arranging && view === 'spines' && (
         <div className="mb-4 flex items-center gap-3 rounded-2xl bg-accent/10 p-3 text-sm text-ink-2">
           <Hand className="size-5 shrink-0 text-accent" />
-          <p className="flex-1">Faites glisser les tranches pour ranger vos livres comme vous voulez. Chaque livre reste dans son rayon.</p>
+          <p className="flex-1">
+            {groupable && group === 'genre'
+              ? 'Faites glisser les tranches pour les ranger. Déposez un livre dans un autre rayon (Romance, Policier…) pour changer son genre.'
+              : 'Faites glisser les tranches pour ranger vos livres comme vous voulez. Chaque livre reste dans son rayon.'}
+          </p>
           <button type="button" onClick={() => setArranging(false)} className="shrink-0 rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink">
             Terminé
           </button>
@@ -249,8 +258,21 @@ export function BookCollection({ books, storageKey, sorts: sortsProp, defaultSor
           </button>
         </div>
       ) : (
-        view === 'spines' && groups.length > 1 ? (
-          <SpineView sections={groups} editable={arranging} onReorder={setOrder} />
+        view === 'spines' && groups.length > 0 && groups[0].key !== '' ? (
+          <SpineView
+            sections={
+              arranging && groupable && group === 'genre'
+                ? [...groups, ...MAIN_GENRES.filter((g) => !groups.some((x) => x.key === g)).map((g) => ({ key: g, items: [] as Book[] }))]
+                : groups
+            }
+            editable={arranging}
+            onReorder={setOrder}
+            crossSection={groupable && group === 'genre'}
+            onSectionChange={(id, key) => {
+              patchBook(id, { genre: key === 'Sans genre' ? undefined : key, genreChecked: true });
+              toast.success(key === 'Sans genre' ? 'Genre retiré' : `Rangé dans « ${key} »`);
+            }}
+          />
         ) : (
         groups.map((g) => (
           <section key={g.key} className={cn(g.key && 'mb-8')}>

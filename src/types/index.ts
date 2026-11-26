@@ -37,6 +37,8 @@ export interface Book {
   coverUrl?: string;
   /** La recherche automatique de couverture a déjà été tentée. */
   coverChecked?: boolean;
+  /** La recherche automatique du genre a déjà été tentée. */
+  genreChecked?: boolean;
   /** Couleur de tranche extraite de la couverture, et couverture analysée. */
   spineColor?: string;
   /** Position choisie par l'utilisateur sur l'étagère (tri « Mon rangement »). */
