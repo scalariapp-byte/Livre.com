@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpen, CalendarDays, Clock, Flame, Gift, Library, Plus, Repeat2, Target, Timer, TrendingUp } from 'lucide-react';
+import { ArrowRight, BookCheck, BookOpen, BookmarkPlus, CalendarDays, Clock, Flame, FolderHeart, Gift, Library, Plus, Repeat2, Settings, Target, Timer, TrendingUp } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLibrary } from '@/store/useLibrary';
@@ -10,8 +10,9 @@ import { ProgressBar, ProgressRing } from '@/components/ui/Progress';
 import { Avatar, Badge } from '@/components/ui/misc';
 import { Button } from '@/components/ui/Button';
 import { BarChart } from '@/components/charts/Charts';
-import { dayTotals, estimateRemaining, finishedInYear, lastNDays, readingSpeed, readingStreak } from '@/lib/stats';
-import { diffDays, fmtWeekday, fromDayKey, greeting, relativeDay, toDayKey } from '@/lib/dates';
+import { dayTotals, estimateRemaining, finishedInYear, lastNDays, readingSpeed, readingStreak, totalsByDay } from '@/lib/stats';
+import { diffDays, fmtMonth, fmtWeekday, fromDayKey, greeting, monthGrid, relativeDay, toDayKey } from '@/lib/dates';
+import type { ReadingPlan, ReadingSession } from '@/types';
 import { bookPercent, cn, formatMinutes, percent, plural } from '@/lib/utils';
 import type { Book } from '@/types';
 
@@ -145,6 +146,58 @@ function CoverStrip({ books, empty, emptyAction }: { books: Book[]; empty: strin
   );
 }
 
+/** Mois en miniature : jours de lecture (vert), sessions prévues (accent), aujourd'hui. */
+function MiniCalendar({ sessions, plans, today }: { sessions: ReadingSession[]; plans: ReadingPlan[]; today: string }) {
+  const navigate = useNavigate();
+  const month = fromDayKey(today);
+  const grid = monthGrid(month);
+  const totals = totalsByDay(sessions);
+  const planned = new Set(plans.filter((p) => !p.done).map((p) => p.date));
+  return (
+    <div>
+      <p className="mb-2 text-sm font-semibold">{fmtMonth(month)}</p>
+      <div className="grid grid-cols-7 gap-y-1 text-center">
+        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
+          <span key={i} className="text-[10px] font-semibold text-muted">
+            {d}
+          </span>
+        ))}
+        {grid.map((d) => {
+          const inMonth = fromDayKey(d).getMonth() === month.getMonth();
+          const t = totals.get(d);
+          const read = !!t && (t.pages > 0 || t.minutes > 0);
+          const isToday = d === today;
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => navigate(`/calendar?date=${d}`)}
+              className={cn('mx-auto flex size-8 flex-col items-center justify-center rounded-full text-xs tabular-nums transition active:scale-90', !inMonth && 'opacity-25', isToday ? 'bg-accent font-bold text-accent-ink' : 'hover:bg-surface-2')}
+              aria-label={d}
+            >
+              {fromDayKey(d).getDate()}
+              <span className="flex h-1 gap-0.5">
+                {read && <span className={cn('size-1 rounded-full', isToday ? 'bg-accent-ink' : 'bg-success')} />}
+                {planned.has(d) && <span className={cn('size-1 rounded-full', isToday ? 'bg-accent-ink' : 'bg-accent')} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const QUICK = [
+  { to: '/to-read', label: 'À lire', icon: BookmarkPlus },
+  { to: '/wishlist', label: 'Souhaits', icon: Gift },
+  { to: '/finished', label: 'Livres lus', icon: BookCheck },
+  { to: '/collections', label: 'Collections', icon: FolderHeart },
+  { to: '/loans', label: 'Prêts', icon: Repeat2 },
+  { to: '/calendar', label: 'Calendrier', icon: CalendarDays },
+  { to: '/settings', label: 'Réglages', icon: Settings },
+];
+
 export function Home() {
   const books = useLibrary((s) => s.books);
   const sessions = useLibrary((s) => s.sessions);
@@ -203,6 +256,16 @@ export function Home() {
         </div>
       </header>
 
+      {/* Raccourcis vers toutes les pages */}
+      <nav aria-label="Raccourcis" className="scrollbar-none -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0 lg:hidden">
+        {QUICK.map(({ to, label, icon: Icon }) => (
+          <Link key={to} to={to} className="flex shrink-0 items-center gap-2 rounded-2xl border border-line/80 bg-surface px-3.5 py-2.5 text-[13px] font-semibold text-ink-2 shadow-card transition active:scale-95">
+            <Icon className="size-4 text-accent" />
+            {label}
+          </Link>
+        ))}
+      </nav>
+
       <motion.div variants={container} initial="hidden" animate="show" className="grid gap-4 lg:grid-cols-3">
         {/* Statistiques quotidiennes */}
         <motion.section variants={item} className="card relative overflow-hidden p-5 lg:col-span-3">
@@ -260,40 +323,6 @@ export function Home() {
 
         <CurrentlyReading books={d.reading} speed={d.speed} />
 
-        {/* Calendrier */}
-        <Card title="Prochaines lectures" icon={<CalendarDays />} to="/calendar">
-          {d.upcoming.length ? (
-            <ul className="space-y-2">
-              {d.upcoming.slice(0, 4).map((p) => {
-                const dd = fromDayKey(p.date);
-                return (
-                  <li key={p.id}>
-                    <Link to={`/calendar?date=${p.date}`} className="flex items-center gap-3 rounded-2xl p-1.5 transition hover:bg-surface-2">
-                      <div className={cn('flex size-12 shrink-0 flex-col items-center justify-center rounded-xl', p.date === today ? 'bg-accent text-accent-ink' : 'bg-surface-2')}>
-                        <span className="text-[10px] font-semibold uppercase leading-none opacity-80">{dd.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</span>
-                        <span className="h-display text-lg font-semibold leading-tight">{dd.getDate()}</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{p.title}</p>
-                        <p className="text-xs text-muted">
-                          {relativeDay(p.date)}
-                          {p.time ? ` · ${p.time}` : ''} · {p.durationMin} min
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
-              <p className="text-sm text-muted">Aucune session planifiée.</p>
-              <Link to="/calendar?new=1" className="mt-2 text-sm font-semibold text-accent">
-                Planifier une lecture →
-              </Link>
-            </div>
-          )}
-        </Card>
 
         <Card title="À lire prochainement" icon={<Library />} to="/to-read" className="lg:col-span-2">
           <CoverStrip
@@ -368,6 +397,47 @@ export function Home() {
               </button>
             </div>
           )}
+        </Card>
+
+        {/* Calendrier */}
+        <Card title="Calendrier" icon={<CalendarDays />} to="/calendar" className="lg:col-span-3">
+          <div className="grid gap-5 sm:grid-cols-2">
+          <MiniCalendar sessions={sessions} plans={plans} today={today} />
+          <div>
+          <p className="label mb-1.5">Prochaines lectures</p>
+          {d.upcoming.length ? (
+            <ul className="space-y-2">
+              {d.upcoming.slice(0, 3).map((p) => {
+                const dd = fromDayKey(p.date);
+                return (
+                  <li key={p.id}>
+                    <Link to={`/calendar?date=${p.date}`} className="flex items-center gap-3 rounded-2xl p-1.5 transition hover:bg-surface-2">
+                      <div className={cn('flex size-12 shrink-0 flex-col items-center justify-center rounded-xl', p.date === today ? 'bg-accent text-accent-ink' : 'bg-surface-2')}>
+                        <span className="text-[10px] font-semibold uppercase leading-none opacity-80">{dd.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</span>
+                        <span className="h-display text-lg font-semibold leading-tight">{dd.getDate()}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{p.title}</p>
+                        <p className="text-xs text-muted">
+                          {relativeDay(p.date)}
+                          {p.time ? ` · ${p.time}` : ''} · {p.durationMin} min
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="flex flex-col items-start py-1">
+              <p className="text-sm text-muted">Aucune session planifiée.</p>
+              <Link to="/calendar?new=1" className="mt-1 text-sm font-semibold text-accent">
+                Planifier une lecture →
+              </Link>
+            </div>
+          )}
+          </div>
+          </div>
         </Card>
       </motion.div>
     </div>

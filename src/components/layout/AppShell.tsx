@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
-import { Plus, MoreHorizontal, Search } from 'lucide-react';
-import { Suspense, useState, type ReactNode } from 'react';
+import { PawPrint, Plus, Search } from 'lucide-react';
+import { Suspense, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { NAV } from './nav';
 import { cn } from '@/lib/utils';
 import { useUI } from '@/store/useUI';
 import { useLibrary } from '@/store/useLibrary';
 import { Avatar } from '@/components/ui/misc';
-import { Sheet } from '@/components/ui/Sheet';
 import { TimerPill } from './TimerPill';
 import { Logo } from './Logo';
 
@@ -85,13 +84,14 @@ function Sidebar() {
 
 function BottomNav() {
   const openAddBook = useUI((s) => s.openAddBook);
-  const [more, setMore] = useState(false);
-  const location = useLocation();
-  const main = [NAV[0], NAV[1]];
-  const right = [NAV.find((n) => n.to === '/calendar')!];
-  const moreActive = !['/', '/library', '/calendar'].includes(location.pathname) && !location.pathname.startsWith('/book/');
+  const pick = (to: string) => NAV.find((n) => n.to === to)!;
+  const left = [pick('/'), pick('/library')];
+  const right = [
+    { ...pick('/stats'), short: 'Stats' },
+    { ...pick('/room'), short: 'Compagnon', icon: PawPrint },
+  ];
 
-  const item = ({ to, label, icon: Icon, short }: (typeof NAV)[number] & { short?: string }) => (
+  const item = ({ to, label, icon: Icon, short }: { to: string; label: string; icon: typeof PawPrint; short?: string }) => (
     <NavLink key={to} to={to} end={to === '/'} className="flex flex-1 flex-col items-center gap-1 py-1.5">
       {({ isActive }) => (
         <>
@@ -106,50 +106,22 @@ function BottomNav() {
   );
 
   return (
-    <>
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-line/60 bg-surface/85 backdrop-blur-xl lg:hidden">
-        <div className="mx-auto flex max-w-xl items-end px-2 pt-1">
-          {main.map(item)}
-          <div className="flex flex-1 justify-center pb-1.5">
-            <button
-              type="button"
-              aria-label="Ajouter un livre"
-              onClick={() => openAddBook()}
-              className="-mt-5 flex size-14 items-center justify-center rounded-[20px] bg-accent text-accent-ink shadow-glow transition active:scale-90"
-            >
-              <Plus className="size-7" strokeWidth={2.2} />
-            </button>
-          </div>
-          {right.map(item)}
-          <button type="button" onClick={() => setMore(true)} className="flex flex-1 flex-col items-center gap-1 py-1.5">
-            <span className={cn('flex h-8 w-14 items-center justify-center rounded-full', moreActive ? 'bg-accent/12 text-accent' : 'text-muted')}>
-              <MoreHorizontal className="size-[22px]" />
-            </span>
-            <span className={cn('text-[10.5px] font-medium', moreActive ? 'text-ink' : 'text-muted')}>Plus</span>
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-line/60 bg-surface/85 backdrop-blur-xl lg:hidden">
+      <div className="mx-auto flex max-w-xl items-end px-2 pt-1">
+        {left.map(item)}
+        <div className="flex flex-1 justify-center pb-1.5">
+          <button
+            type="button"
+            aria-label="Ajouter un livre"
+            onClick={() => openAddBook()}
+            className="-mt-5 flex size-14 items-center justify-center rounded-[20px] bg-accent text-accent-ink shadow-glow transition active:scale-90"
+          >
+            <Plus className="size-7" strokeWidth={2.2} />
           </button>
         </div>
-      </nav>
-      <Sheet open={more} onClose={() => setMore(false)} title="Menu" size="sm">
-        <div className="grid grid-cols-3 gap-2.5">
-          {NAV.filter((n) => !['/', '/library', '/calendar'].includes(n.to)).map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setMore(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-2 rounded-2xl border p-3.5 text-center text-[12.5px] font-medium transition active:scale-95',
-                  isActive ? 'border-accent/30 bg-accent/8 text-accent' : 'border-line/80 text-ink-2',
-                )
-              }
-            >
-              <Icon className="size-6" />
-              {label}
-            </NavLink>
-          ))}
-        </div>
-      </Sheet>
-    </>
+        {right.map(item)}
+      </div>
+    </nav>
   );
 }
 
