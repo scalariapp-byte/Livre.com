@@ -216,7 +216,7 @@ function InstallBanner() {
       <span className="text-2xl">📲</span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">Installer Livre</p>
-        <p className="text-xs text-muted">{isIOS() ? 'Safari : Partager → « Sur l’écran d’accueil »' : 'Comme une vraie application, même hors ligne.'}</p>
+        <p className="text-xs text-muted">{isIOS() ? 'Safari : Partager → « Sur l’écran d’accueil » → active « Ouvrir comme app web » → Ajouter' : 'Comme une vraie application, même hors ligne.'}</p>
       </div>
       {!isIOS() && (
         <Button size="sm" onClick={() => promptInstall()}>

@@ -300,7 +300,9 @@ export function SettingsPage() {
               <div className="space-y-2 bg-surface-2/60 px-5 py-4 text-sm text-ink-2">
                 <p>1. Dans Safari, touchez le bouton <b>Partager</b> (carré avec une flèche vers le haut).</p>
                 <p>2. Choisissez <b>« Sur l’écran d’accueil »</b>.</p>
-                <p>3. Touchez <b>Ajouter</b> : l’icône Livre apparaît sur votre écran.</p>
+                <p>3. Vérifiez que <b>« Ouvrir comme app web »</b> est activé (s’il apparaît).</p>
+                <p>4. Touchez <b>Ajouter</b> : l’icône Livre s’ouvre alors dans sa propre fenêtre, sans Safari.</p>
+                <p className="text-xs text-muted">Si l’icône ouvre Safari, supprimez-la et refaites ces étapes depuis l’adresse principale du site.</p>
               </div>
             )}
             {installed && <Row title="Application installée" description="Vous utilisez Livre comme une application." />}
