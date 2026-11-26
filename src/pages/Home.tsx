@@ -13,6 +13,9 @@ import { BarChart } from '@/components/charts/Charts';
 import { dayTotals, estimateRemaining, finishedInYear, lastNDays, readingSpeed, readingStreak, totalsByDay } from '@/lib/stats';
 import { diffDays, fmtMonth, fmtWeekday, fromDayKey, greeting, monthGrid, relativeDay, toDayKey } from '@/lib/dates';
 import type { ReadingPlan, ReadingSession } from '@/types';
+import { isIOS, promptInstall, useInstall } from '@/lib/install';
+import { isNative } from '@/lib/platform';
+import { useState as useStateInstall } from 'react';
 import { bookPercent, cn, formatMinutes, percent, plural } from '@/lib/utils';
 import type { Book } from '@/types';
 
@@ -188,6 +191,45 @@ function MiniCalendar({ sessions, plans, today }: { sessions: ReadingSession[]; 
   );
 }
 
+/** Bandeau d'installation de l'application (version web uniquement). */
+function InstallBanner() {
+  const event = useInstall((s) => s.promptEvent);
+  const installed = useInstall((s) => s.installed);
+  const [hidden, setHidden] = useStateInstall(() => {
+    try {
+      return localStorage.getItem('livre-install-hidden') === '1';
+    } catch {
+      return false;
+    }
+  });
+  if (isNative() || installed || hidden || (!event && !isIOS())) return null;
+  const hide = () => {
+    setHidden(true);
+    try {
+      localStorage.setItem('livre-install-hidden', '1');
+    } catch {
+      /* ignore */
+    }
+  };
+  return (
+    <div className="mb-5 flex items-center gap-3 rounded-2xl bg-accent/10 p-3.5">
+      <span className="text-2xl">📲</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">Installer Livre</p>
+        <p className="text-xs text-muted">{isIOS() ? 'Safari : Partager → « Sur l’écran d’accueil »' : 'Comme une vraie application, même hors ligne.'}</p>
+      </div>
+      {!isIOS() && (
+        <Button size="sm" onClick={() => promptInstall()}>
+          Installer
+        </Button>
+      )}
+      <button type="button" onClick={hide} aria-label="Masquer" className="px-1 text-lg text-muted">
+        ×
+      </button>
+    </div>
+  );
+}
+
 const QUICK = [
   { to: '/to-read', label: 'À lire', icon: BookmarkPlus },
   { to: '/wishlist', label: 'Souhaits', icon: Gift },
@@ -255,6 +297,8 @@ export function Home() {
           <HeaderActions />
         </div>
       </header>
+
+      <InstallBanner />
 
       {/* Raccourcis vers toutes les pages */}
       <nav aria-label="Raccourcis" className="scrollbar-none -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0 lg:hidden">

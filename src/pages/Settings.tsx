@@ -18,6 +18,7 @@ import { GoalsSheet } from './Stats';
 import { THEMES } from '@/lib/themes';
 import { APP_VERSION, checkForUpdate, openUpdate } from '@/lib/updates';
 import { useUpdate } from '@/components/UpdateChecker';
+import { isIOS, promptInstall, useInstall } from '@/lib/install';
 import type { Accent, ThemeMode } from '@/types';
 
 function Group({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
@@ -58,6 +59,9 @@ export function SettingsPage() {
   const [usage, setUsage] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const showUpdate = useUpdate((s) => s.show);
+  const installEvent = useInstall((s) => s.promptEvent);
+  const installed = useInstall((s) => s.installed);
+  const [iosHelp, setIosHelp] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -279,6 +283,27 @@ export function SettingsPage() {
               </span>
             </Row>
           ) : (
+            <>
+            {!installed && (installEvent || isIOS()) && (
+              <Row
+                title="Installer l'application"
+                description={isIOS() ? 'Ajoutez Livre à l’écran d’accueil de votre iPhone ou iPad.' : 'Ajoutez Livre à votre appareil : icône, plein écran, hors ligne.'}
+                onClick={async () => {
+                  if (isIOS()) return setIosHelp((v) => !v);
+                  if (await promptInstall()) toast.success('Livre est installée 🎉');
+                }}
+              >
+                <Download className="size-5 text-accent" />
+              </Row>
+            )}
+            {iosHelp && (
+              <div className="space-y-2 bg-surface-2/60 px-5 py-4 text-sm text-ink-2">
+                <p>1. Dans Safari, touchez le bouton <b>Partager</b> (carré avec une flèche vers le haut).</p>
+                <p>2. Choisissez <b>« Sur l’écran d’accueil »</b>.</p>
+                <p>3. Touchez <b>Ajouter</b> : l’icône Livre apparaît sur votre écran.</p>
+              </div>
+            )}
+            {installed && <Row title="Application installée" description="Vous utilisez Livre comme une application." />}
             <Row
               title="Application Android"
               description="Installez Livre sur votre téléphone Android. La version web se met à jour toute seule."
@@ -286,6 +311,7 @@ export function SettingsPage() {
             >
               <Download className="size-5 text-muted" />
             </Row>
+            </>
           )}
         </Group>
 

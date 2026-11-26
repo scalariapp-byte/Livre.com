@@ -12,6 +12,18 @@ npm run build      # typecheck + build de production dans dist/
 npm run preview    # sert le build (service worker actif)
 ```
 
+## Mettre en ligne sur Vercel
+
+Le dépôt contient `vercel.json` (build Vite, réécriture des routes vers `index.html`, en-têtes du service worker).
+
+1. Sur https://vercel.com, **Add New… → Project**, puis importer le dépôt GitHub `Livre.com`.
+2. Laisser les réglages détectés (Framework : Vite, Build : `npm run build`, Output : `dist`) et cliquer **Deploy**.
+3. Ouvrir l'adresse obtenue (`https://…vercel.app`) : l'application est installable
+   - Android / Chrome / Edge : bouton **Installer** dans l'app (ou menu ⋮ → Installer l'application) ;
+   - iPhone / iPad : Safari → **Partager** → **Sur l'écran d'accueil**.
+
+Chaque nouveau commit sur la branche de production redéploie automatiquement le site.
+
 ## Fonctionnalités
 
 - **Accueil** : salutation, objectif du jour (pages/minutes), série, 7 derniers jours, lectures en cours, à lire, souhaits, terminés, prêts, sessions planifiées.
