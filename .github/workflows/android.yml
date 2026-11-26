@@ -36,6 +36,10 @@ jobs:
           VITE_APP_BUILD: ${{ github.run_number }}
         run: npm run build
 
+      # Interface seule : téléchargée par l'app Android pour se mettre à jour sans réinstaller.
+      - name: Paquet de mise à jour automatique
+        run: cd dist && zip -qr "../livre-web-api$(tr -d '[:space:]' < ../native-api.txt).zip" .
+
       - name: Synchronisation Capacitor
         run: npx cap sync android
 
@@ -65,10 +69,13 @@ jobs:
           name: Livre 1.0.${{ github.run_number }} (Android)
           target_commitish: ${{ github.sha }}
           make_latest: true
-          files: Livre.apk
+          files: |
+            Livre.apk
+            livre-web-api*.zip
           body: |
             Application Android Livre.
 
             **Installer :** téléchargez `Livre.apk` ci-dessous sur votre téléphone, ouvrez-le, puis appuyez sur « Installer »
             (autorisez l'installation depuis cette source si Android le demande).
             Chaque nouvelle version s'installe par-dessus la précédente, sans perte de données.
+            Une fois cette version installée, l'application se met à jour toute seule (fichier `livre-web-api*.zip`).

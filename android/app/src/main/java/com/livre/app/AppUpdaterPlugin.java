@@ -29,6 +29,19 @@ public class AppUpdaterPlugin extends Plugin {
 
     private static final int MAX_REDIRECTS = 5;
 
+    /** Niveau des fonctions natives de cet APK (native-api.txt). */
+    @PluginMethod
+    public void info(PluginCall call) {
+        JSObject ret = new JSObject();
+        int api = 0;
+        try {
+            api = Integer.parseInt(getContext().getString(R.string.native_api).trim());
+        } catch (Exception ignored) {
+        }
+        ret.put("nativeApi", api);
+        call.resolve(ret);
+    }
+
     /** Indique si l'application a le droit d'installer des mises à jour (Android 8+). */
     @PluginMethod
     public void canInstall(PluginCall call) {

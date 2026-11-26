@@ -1,5 +1,6 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { isNative } from './platform';
+import { coveredByLive } from './liveUpdate';
 
 interface AppUpdaterPlugin {
   canInstall(): Promise<{ allowed: boolean }>;
@@ -50,6 +51,8 @@ export async function checkForUpdate(signal?: AbortSignal): Promise<UpdateInfo |
   if (!m || !apk || r.draft || r.prerelease) return null;
   const build = Number(m[1]);
   if (build <= APP_BUILD) return null;
+  // La nouveauté arrive toute seule (mise à jour automatique de l'interface) : pas besoin de réinstaller l'APK.
+  if (await coveredByLive(r.assets)) return null;
   return { build, version: `1.0.${build}`, apkUrl: apk.browser_download_url, pageUrl: r.html_url, publishedAt: r.published_at };
 }
 

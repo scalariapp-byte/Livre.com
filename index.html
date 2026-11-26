@@ -31,6 +31,30 @@
         if (id !== 'light' && id !== 'dark') document.documentElement.classList.add('theme-' + id);
       } catch (e) {}
     </script>
+      <script>
+      /* Mise à jour automatique Android : si une nouvelle interface ne démarre pas, retour à la précédente. */
+      (function () {
+        try {
+          var C = window.Capacitor;
+          if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
+          var p = localStorage.getItem('livre-live-pending');
+          if (!p) return;
+          setTimeout(function () {
+            if (localStorage.getItem('livre-live-ok') === p) return;
+            var bad = JSON.parse(localStorage.getItem('livre-live-bad') || '[]');
+            bad.push(Number(p));
+            localStorage.setItem('livre-live-bad', JSON.stringify(bad));
+            localStorage.removeItem('livre-live-pending');
+            localStorage.removeItem('livre-live-ready');
+            var W = C.Plugins && C.Plugins.WebView;
+            var prev = localStorage.getItem('livre-live-prev') || '';
+            if (!W) return;
+            if (prev) W.setServerBasePath({ path: prev });
+            else W.setServerAssetPath({ path: 'public' });
+          }, 20000);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
