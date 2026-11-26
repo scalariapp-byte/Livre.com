@@ -204,7 +204,7 @@ export const backupSchema = z.object({
       })
       .default({ placements: {} }),
     badges: z.record(z.string()).default({}),
-    pet: z.object({ species: z.string(), name: z.string(), head: optStr, side: optStr, adoptedAt: z.string() }).optional(),
+    pet: z.object({ species: z.string(), name: z.string(), coat: optStr, head: optStr, side: optStr, adoptedAt: z.string() }).optional(),
     shelves: z.array(z.object({ id: z.string(), name: z.string(), emoji: optStr, createdAt: z.string() })).default([]),
     settings: z
       .object({

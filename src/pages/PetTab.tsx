@@ -3,6 +3,7 @@ import { Hand, Pencil, Timer } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LOOKS, PetSprite, type PetAction } from '@/components/PetSprite';
 import { PetRoom } from '@/components/PetRoom';
+import { CAT_COATS, coatOf } from '@/components/CatSprite';
 import { useNavigate } from 'react-router-dom';
 import { useLibrary } from '@/store/useLibrary';
 import { useUI } from '@/store/useUI';
@@ -184,6 +185,7 @@ export function PetTab() {
                 <div style={{ transform: `scaleX(${walk.dir})` }}>
                   <PetSprite
                     species={pet.species}
+                    coat={pet.coat}
                     action={action}
                     size={Math.round(150 * st.stage.scale)}
                     head={head && <span style={{ display: 'inline-block', transform: `scaleX(${walk.dir})` }}>{head.emoji}</span>}
@@ -267,6 +269,30 @@ export function PetTab() {
           <p className="mt-2 text-xs text-muted">{st.food >= 100 ? `${pet.name} est rassasié, bravo !` : 'Chaque page lue aujourd’hui remplit sa gamelle.'}</p>
         </div>
       </div>
+
+      {/* Pelage (chat) */}
+      {pet.species === 'cat' && (
+        <section className="card p-4">
+          <p className="mb-3 text-sm font-semibold">Pelage de {pet.name}</p>
+          <div className="flex flex-wrap gap-2">
+            {CAT_COATS.map((c) => {
+              const on = coatOf(pet.coat).id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setPet({ coat: c.id })}
+                  className={cn('flex items-center gap-2 rounded-full border-2 py-1 pl-1 pr-3 text-[13px] font-medium transition active:scale-95', on ? 'border-accent' : 'border-line')}
+                >
+                  <span className="size-7 rounded-full ring-1 ring-black/10" style={{ background: `radial-gradient(circle at 35% 30%, ${c.light}, ${c.fur} 60%, ${c.dark})` }} />
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Accessoires */}
       <section className="card p-4">

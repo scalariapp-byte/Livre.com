@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useId, type ReactNode } from 'react';
+import { CatSprite, coatOf } from './CatSprite';
 
 export type PetAction = 'idle' | 'walk' | 'happy' | 'sleep' | 'look';
 
@@ -172,6 +173,8 @@ function Face({ look, mode }: { look: Look; mode: 'open' | 'happy' | 'sleep' }) 
 
 interface Props {
   species: string;
+  /** Pelage (chat uniquement). */
+  coat?: string;
   action: PetAction;
   size?: number;
   head?: ReactNode;
@@ -179,7 +182,7 @@ interface Props {
 }
 
 /** Animal dessiné et animé : respiration, clignement, queue, oreilles, marche, sommeil, câlin. */
-export function PetSprite({ species, action, size = 180, head, side }: Props) {
+export function PetSprite({ species, coat, action, size = 180, head, side }: Props) {
   const uid = useId().replace(/:/g, '');
   const g = (n: string) => `${n}-${uid}`;
   const look = LOOKS[species] ?? LOOKS.cat;
@@ -205,7 +208,9 @@ export function PetSprite({ species, action, size = 180, head, side }: Props) {
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      {sleeping ? (
+      {species === 'cat' ? (
+        <CatSprite action={action} size={size} coat={coatOf(coat)} />
+      ) : sleeping ? (
         /* ---- Pose endormie : roulé en boule ---- */
         <svg viewBox="0 0 200 200" width={size} height={size} className="overflow-visible">
           {defs}

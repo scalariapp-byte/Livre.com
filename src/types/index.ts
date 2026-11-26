@@ -163,6 +163,8 @@ export interface RoomState {
 export interface PetState {
   species: string;
   name: string;
+  /** Pelage du chat. */
+  coat?: string;
   head?: string;
   side?: string;
   adoptedAt: string;

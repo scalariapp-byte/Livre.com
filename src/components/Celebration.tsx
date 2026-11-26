@@ -102,7 +102,7 @@ export function Celebration() {
               animate={{ x: ['-260%', '-170%', '-110%', '-50%'], y: [0, -40, 0, -26, 0] }}
               transition={{ duration: 1.3, delay: 0.5, ease: 'easeOut' }}
             >
-              {pet && LOOKS[pet.species] ? <PetSprite species={pet.species} action="happy" size={88} /> : petEmoji}
+              {pet && LOOKS[pet.species] ? <PetSprite species={pet.species} coat={pet.coat} action="happy" size={88} /> : petEmoji}
             </motion.div>
             <motion.div
               className="absolute left-1/2 top-2 ml-9 rounded-2xl bg-accent px-3 py-1.5 text-sm font-bold text-accent-ink shadow-lift"
