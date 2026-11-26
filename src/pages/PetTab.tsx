@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Hand, Pencil, Timer } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { LOOKS, PetSprite, type PetAction } from '@/components/PetSprite';
 import { useNavigate } from 'react-router-dom';
 import { useLibrary } from '@/store/useLibrary';
 import { useUI } from '@/store/useUI';
@@ -74,6 +75,40 @@ export function PetTab() {
 
   const st = useMemo(() => petStatus(books, sessions, goal), [books, sessions, goal]);
 
+  // ---- Comportement : se promène, regarde autour, s'assoit, dort ----
+  const [action, setAction] = useState<PetAction>('idle');
+  const [walk, setWalk] = useState({ x: 0, dir: 1, duration: 0 });
+  const happyUntil = useRef(0);
+  const sleepy = st.mood === 'sleepy';
+
+  useEffect(() => {
+    if (sleepy) {
+      setAction('sleep');
+      return;
+    }
+    let t: ReturnType<typeof setTimeout>;
+    const next = () => {
+      if (Date.now() < happyUntil.current) {
+        t = setTimeout(next, 800);
+        return;
+      }
+      const r = Math.random();
+      if (r < 0.45) {
+        setWalk((w) => {
+          const x = Math.round((Math.random() * 2 - 1) * 70);
+          const duration = Math.max(0.8, Math.abs(x - w.x) / 45);
+          setAction('walk');
+          setTimeout(() => setAction((a) => (a === 'walk' ? 'idle' : a)), duration * 1000);
+          return { x, dir: x >= w.x ? 1 : -1, duration };
+        });
+      } else if (r < 0.7) setAction('look');
+      else setAction('idle');
+      t = setTimeout(next, 3200 + Math.random() * 3000);
+    };
+    t = setTimeout(next, 1200);
+    return () => clearTimeout(t);
+  }, [sleepy]);
+
   if (!pet)
     return (
       <div className="card p-5">
@@ -95,6 +130,9 @@ export function PetTab() {
   const reading = books.filter((b) => b.status === 'reading').sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
 
   const caress = () => {
+    happyUntil.current = Date.now() + 2200;
+    setAction('happy');
+    setTimeout(() => setAction(sleepy ? 'sleep' : 'idle'), 2200);
     setJump((j) => j + 1);
     setHearts((h) => [...h.slice(-6), Date.now()]);
     setTapLine(PET_TAP_LINES[Math.floor(Math.random() * PET_TAP_LINES.length)]);
@@ -132,27 +170,47 @@ export function PetTab() {
           </motion.div>
         </AnimatePresence>
 
-        <button type="button" onClick={caress} aria-label={`Caresser ${pet.name}`} className="relative mx-auto mt-3 flex h-48 w-full max-w-xs items-end justify-center outline-none">
+        <button type="button" onClick={caress} aria-label={`Caresser ${pet.name}`} className="relative mx-auto mt-3 flex h-56 w-full max-w-sm items-end justify-center overflow-hidden outline-none">
           {/* Coussin */}
-          <span className="absolute bottom-2 h-8 w-44 rounded-[50%] bg-accent/25 blur-[1px]" />
-          <span className="absolute bottom-4 h-6 w-36 rounded-[50%] bg-accent/35" />
-          <motion.span
-            key={jump}
-            className="relative mb-6 block leading-none"
-            style={{ fontSize: size, filter: st.mood === 'sleepy' ? 'saturate(0.6)' : undefined }}
-            initial={{ y: 0 }}
-            animate={jump ? { y: [0, -36, 0, -12, 0], rotate: [0, -6, 6, 0] } : { y: [0, -5, 0] }}
-            transition={jump ? { duration: 0.7 } : { duration: st.mood === 'sleepy' ? 4 : 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            {head && <span className="absolute -top-[0.42em] left-1/2 -translate-x-1/2 text-[0.42em]">{head.emoji}</span>}
-            {sp.emoji}
-            {side && <span className="absolute -right-[0.55em] bottom-0 text-[0.42em]">{side.emoji}</span>}
-            {st.mood === 'sleepy' && (
-              <motion.span className="absolute -right-4 -top-2 text-[0.25em] font-bold text-muted" animate={{ opacity: [0, 1, 0], y: [0, -10] }} transition={{ duration: 2, repeat: Infinity }}>
-                Zzz
-              </motion.span>
-            )}
-          </motion.span>
+          <span className="absolute bottom-1 h-9 w-72 rounded-[50%] bg-accent/15 blur-[1px]" />
+          <span className="absolute bottom-3 h-6 w-56 rounded-[50%] bg-accent/25" />
+          {LOOKS[pet.species] ? (
+            <motion.div
+              className="relative mb-1"
+              animate={{ x: walk.x }}
+              transition={{ duration: walk.duration, ease: 'linear' }}
+            >
+              <motion.div key={jump} animate={jump ? { y: [0, -34, 0, -10, 0] } : { y: 0 }} transition={{ duration: 0.7 }}>
+                <div style={{ transform: `scaleX(${walk.dir})` }}>
+                  <PetSprite
+                    species={pet.species}
+                    action={action}
+                    size={Math.round(150 * st.stage.scale)}
+                    head={head && <span style={{ display: 'inline-block', transform: `scaleX(${walk.dir})` }}>{head.emoji}</span>}
+                    side={side && <span style={{ display: 'inline-block', transform: `scaleX(${walk.dir})` }}>{side.emoji}</span>}
+                  />
+                </div>
+              </motion.div>
+              {action === 'sleep' && (
+                <motion.span className="absolute -top-2 right-2 text-xl font-bold text-muted" animate={{ opacity: [0, 1, 0], y: [0, -14], x: [0, 6] }} transition={{ duration: 2.4, repeat: Infinity }}>
+                  Zzz
+                </motion.span>
+              )}
+            </motion.div>
+          ) : (
+            <motion.span
+              key={jump}
+              className="relative mb-6 block leading-none"
+              style={{ fontSize: size, filter: st.mood === 'sleepy' ? 'saturate(0.6)' : undefined }}
+              initial={{ y: 0 }}
+              animate={jump ? { y: [0, -36, 0, -12, 0], rotate: [0, -6, 6, 0] } : { y: [0, -5, 0], x: [0, 30, 0, -30, 0] }}
+              transition={jump ? { duration: 0.7 } : { duration: st.mood === 'sleepy' ? 4 : 8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              {head && <span className="absolute -top-[0.42em] left-1/2 -translate-x-1/2 text-[0.42em]">{head.emoji}</span>}
+              {sp.emoji}
+              {side && <span className="absolute -right-[0.55em] bottom-0 text-[0.42em]">{side.emoji}</span>}
+            </motion.span>
+          )}
           {hearts.map((h) => (
             <motion.span
               key={h}
