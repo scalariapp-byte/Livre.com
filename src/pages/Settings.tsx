@@ -57,6 +57,7 @@ export function SettingsPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [pending, setPending] = useState<Backup | null>(null);
   const [usage, setUsage] = useState<string | null>(null);
+  const [persisted, setPersisted] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const showUpdate = useUpdate((s) => s.show);
   const installEvent = useInstall((s) => s.promptEvent);
@@ -64,6 +65,11 @@ export function SettingsPage() {
   const [iosHelp, setIosHelp] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isNative()) setPersisted(true); // données dans le stockage privé de l'application
+    else navigator.storage?.persisted?.().then(setPersisted).catch(() => {});
+  }, []);
 
   useEffect(() => {
     navigator.storage
@@ -242,6 +248,16 @@ export function SettingsPage() {
         </Group>
 
         <Group title="Données" icon={<Database />}>
+          <Row
+            title={persisted ? 'Données protégées sur cet appareil' : 'Données enregistrées sur cet appareil'}
+            description={
+              persisted
+                ? 'Vos livres sont gardés sur le téléphone, même hors ligne, et ne seront pas effacés automatiquement.'
+                : 'Vos livres sont gardés sur le téléphone, même hors ligne. Installez l’app et exportez une sauvegarde de temps en temps.'
+            }
+          >
+            <ShieldCheck className={cn('size-5', persisted ? 'text-success' : 'text-muted')} />
+          </Row>
           <Row title="Exporter mes données" description="Téléchargez une sauvegarde complète au format JSON." onClick={doExport}>
             <Download className="size-5 text-muted" />
           </Row>

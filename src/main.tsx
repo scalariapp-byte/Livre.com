@@ -7,6 +7,10 @@ import { listenForInstall } from './lib/install';
 
 if (!isNative()) listenForInstall();
 
+// Demande au navigateur un stockage « persistant » : les livres ne seront pas
+// effacés automatiquement quand l'appareil manque de place.
+navigator.storage?.persist?.().catch(() => {});
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
