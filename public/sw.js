@@ -1,5 +1,5 @@
 /* Service worker Livre : app disponible hors ligne. */
-const CACHE = 'livre-v1';
+const CACHE = 'livre-v2';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (e) => {
