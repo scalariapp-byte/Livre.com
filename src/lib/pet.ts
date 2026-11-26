@@ -114,3 +114,27 @@ export function petStatus(books: Book[], sessions: ReadingSession[], dailyGoal: 
     food: dailyGoal > 0 ? Math.min(100, Math.round((dayTotals(sessions).pages / dailyGoal) * 100)) : 0,
   };
 }
+
+/** Éléments de la chambre du compagnon : vide au début, débloqués par niveau. */
+export interface RoomItem {
+  id: 'cushion' | 'rug' | 'window' | 'curtains' | 'shelf' | 'books' | 'plant' | 'wallpaper' | 'frame' | 'lamp' | 'garland';
+  emoji: string;
+  name: string;
+  level: number;
+}
+
+export const ROOM_ITEMS: RoomItem[] = [
+  { id: 'cushion', emoji: '🛏️', name: 'Un coussin douillet', level: 2 },
+  { id: 'rug', emoji: '🧶', name: 'Un tapis', level: 3 },
+  { id: 'window', emoji: '🪟', name: 'Une fenêtre', level: 4 },
+  { id: 'curtains', emoji: '🎀', name: 'Des rideaux', level: 5 },
+  { id: 'shelf', emoji: '🪵', name: 'Une étagère', level: 6 },
+  { id: 'books', emoji: '📚', name: 'Des livres', level: 7 },
+  { id: 'plant', emoji: '🪴', name: 'Une plante', level: 8 },
+  { id: 'wallpaper', emoji: '🌸', name: 'Du papier peint', level: 9 },
+  { id: 'frame', emoji: '🖼️', name: 'Un tableau', level: 10 },
+  { id: 'lamp', emoji: '💡', name: 'Une lampe', level: 11 },
+  { id: 'garland', emoji: '✨', name: 'Une guirlande lumineuse', level: 12 },
+];
+
+export const roomUnlocked = (level: number) => new Set(ROOM_ITEMS.filter((i) => level >= i.level).map((i) => i.id));

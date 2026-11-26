@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/Field';
 import { ProgressBar } from '@/components/ui/Progress';
 import { Sheet } from '@/components/ui/Sheet';
 import { toast } from '@/components/ui/Toast';
-import { ACCESSORIES, MOOD_META, PET_TAP_LINES, SPECIES, petMessage, petStatus, speciesOf } from '@/lib/pet';
+import { ACCESSORIES, MOOD_META, PET_TAP_LINES, ROOM_ITEMS, SPECIES, petMessage, petStatus, roomUnlocked, speciesOf } from '@/lib/pet';
 import { cn } from '@/lib/utils';
 
 function Adopt({ onDone, initial }: { onDone: () => void; initial?: { species: string; name: string } }) {
@@ -174,7 +174,7 @@ export function PetTab() {
 
         <button type="button" onClick={caress} aria-label={`Caresser ${pet.name}`} className="relative mt-3 flex h-64 w-full items-end justify-center overflow-hidden rounded-3xl outline-none ring-1 ring-black/10 sm:h-72">
           {/* Coussin */}
-          <PetRoom night={st.mood === 'sleepy'} />
+          <PetRoom night={st.mood === 'sleepy'} items={roomUnlocked(st.level)} />
           {LOOKS[pet.species] ? (
             <motion.div
               className="relative mb-[2%]"
@@ -269,6 +269,35 @@ export function PetTab() {
           <p className="mt-2 text-xs text-muted">{st.food >= 100 ? `${pet.name} est rassasié, bravo !` : 'Chaque page lue aujourd’hui remplit sa gamelle.'}</p>
         </div>
       </div>
+
+      {/* Chambre : se remplit avec les niveaux */}
+      <section className="card p-4">
+        <div className="mb-3 flex items-baseline justify-between">
+          <p className="text-sm font-semibold">Sa chambre</p>
+          <p className="text-xs text-muted">
+            {ROOM_ITEMS.filter((i) => st.level >= i.level).length}/{ROOM_ITEMS.length} objets
+          </p>
+        </div>
+        {(() => {
+          const next = ROOM_ITEMS.find((i) => st.level < i.level);
+          return next ? (
+            <p className="mb-3 rounded-2xl bg-surface-2 p-3 text-sm text-ink-2">
+              Prochain objet au <b>niveau {next.level}</b> : {next.emoji} {next.name.toLowerCase()}
+            </p>
+          ) : null;
+        })()}
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+          {ROOM_ITEMS.map((i) => {
+            const locked = st.level < i.level;
+            return (
+              <div key={i.id} className={cn('flex flex-col items-center gap-1 rounded-2xl border p-2 text-center', locked ? 'border-dashed border-line opacity-50' : 'border-accent/40 bg-accent/5')}>
+                <span className={cn('text-2xl leading-none', locked && 'grayscale')}>{locked ? '🔒' : i.emoji}</span>
+                <span className="line-clamp-2 text-[10.5px] font-medium leading-tight text-ink-2">{locked ? `Niveau ${i.level}` : i.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Pelage (chat) */}
       {pet.species === 'cat' && (
