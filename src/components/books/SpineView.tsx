@@ -10,9 +10,9 @@ const FALLBACK = ['#2B3A55', '#5C3D2E', '#1F4E4A', '#6B2D3C', '#2E2A4F', '#3D4A2
 
 /** Toutes les tranches ont la même taille, comme une collection bien rangée. */
 const SPINE_W = 30;
-const SHELF_H = 168;
+const SHELF_H = 120;
 const GAP = 3;
-const ROW_GAP = 30;
+const ROW_GAP = 22;
 
 interface Section {
   key: string;
@@ -128,7 +128,7 @@ export function SpineView({ books, sections, editable, onReorder, crossSection, 
                       aria-label={`${b.title}${b.authors[0] ? `, ${b.authors[0]}` : ''}`}
                       title={b.title}
                       className={cn(
-                        'relative flex shrink-0 flex-col items-center justify-between overflow-hidden rounded-[3px] py-2 outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        'relative flex shrink-0 flex-col items-center justify-between overflow-hidden rounded-[3px] py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent',
                         editable && 'cursor-grab touch-none select-none',
                         dragging && 'z-10 cursor-grabbing ring-2 ring-white/80',
                       )}
@@ -143,7 +143,7 @@ export function SpineView({ books, sections, editable, onReorder, crossSection, 
                       <span className="block h-[3px] w-full opacity-40" style={{ background: ink }} />
                       <span
                         className="h-display min-h-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-1.5 font-semibold leading-none"
-                        style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: b.title.length > 26 ? 10 : 11.5 }}
+                        style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: b.title.length > 20 ? 9.5 : 11 }}
                       >
                         {b.title}
                       </span>
@@ -158,27 +158,27 @@ export function SpineView({ books, sections, editable, onReorder, crossSection, 
   const shelfStyle = {
     columnGap: GAP,
     rowGap: ROW_GAP,
-    paddingBottom: ROW_GAP,
-    minHeight: SHELF_H + ROW_GAP,
+    paddingBottom: 16,
+    minHeight: SHELF_H + 16,
     // Une planche sous chaque rangée (les rangées ont toutes la même hauteur).
-    backgroundImage: `repeating-linear-gradient(180deg, transparent 0 ${SHELF_H}px, #a87449 ${SHELF_H}px, #7a4f2f ${SHELF_H + 14}px, rgba(0,0,0,0.45) ${SHELF_H + 14}px, transparent ${SHELF_H + 24}px, transparent ${SHELF_H + ROW_GAP}px)`,
+    backgroundImage: `repeating-linear-gradient(180deg, transparent 0 ${SHELF_H}px, #a87449 ${SHELF_H}px, #7a4f2f ${SHELF_H + 14}px, rgba(0,0,0,0.45) ${SHELF_H + 14}px, transparent ${SHELF_H + 20}px, transparent ${SHELF_H + ROW_GAP}px)`,
     marginInline: -8,
     paddingInline: 12,
   };
 
   return (
-    <div className="overflow-hidden rounded-3xl bg-gradient-to-b from-[#5b3b26] to-[#4a2f1e] p-2.5 shadow-lift sm:p-3.5">
-      <div className="rounded-2xl bg-gradient-to-b from-[#3a2518] to-[#2b1b11] px-2 pt-3 shadow-[inset_0_8px_24px_rgba(0,0,0,0.45)] sm:px-4">
+    <div className="overflow-hidden rounded-3xl bg-gradient-to-b from-[#5b3b26] to-[#4a2f1e] p-2 shadow-lift sm:p-3">
+      <div className="rounded-2xl bg-gradient-to-b from-[#3a2518] to-[#2b1b11] px-2 pt-2 shadow-[inset_0_8px_24px_rgba(0,0,0,0.45)] sm:px-4">
         {local.map((sec) => {
           const list = sec.ids.map((id) => byId.get(id)).filter(Boolean) as Book[];
           return (
             <section key={sec.key || 'all'} data-section-label={sections ? sec.key : undefined} aria-label={sections ? `Rayon ${sec.key}` : undefined}>
               {sections && (
                 // Plaque du rayon, au-dessus de l'étagère
-                <div className="mb-2.5 flex justify-center pt-1">
-                  <span className="inline-flex items-center gap-2 rounded-md border border-[#7a5a2a] bg-gradient-to-b from-[#e8cf98] via-[#d4b06b] to-[#b48a47] px-4 py-1 shadow-[0_2px_4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.5)]">
-                    <span className="h-display text-[15px] font-bold tracking-wide text-[#3b2a14]">{sec.key}</span>
-                    <span className="rounded bg-[#3b2a14]/15 px-1.5 text-[11px] font-bold tabular-nums text-[#3b2a14]">{list.length}</span>
+                <div className="mb-2 flex justify-center">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[#7a5a2a] bg-gradient-to-b from-[#e8cf98] via-[#d4b06b] to-[#b48a47] px-3 py-0.5 shadow-[0_2px_4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.5)]">
+                    <span className="h-display text-[13px] font-bold tracking-wide text-[#3b2a14]">{sec.key}</span>
+                    <span className="rounded bg-[#3b2a14]/15 px-1 text-[10px] font-bold tabular-nums text-[#3b2a14]">{list.length}</span>
                   </span>
                 </div>
               )}
