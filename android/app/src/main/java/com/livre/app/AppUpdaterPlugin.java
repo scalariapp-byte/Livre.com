@@ -110,12 +110,24 @@ public class AppUpdaterPlugin extends Plugin {
                     }
                 }
 
+                if (total > 0 && done != total) throw new Exception("Téléchargement incomplet, réessayez");
+
                 Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", apk);
                 Intent install = new Intent(Intent.ACTION_VIEW);
                 install.setDataAndType(uri, "application/vnd.android.package-archive");
-                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(install);
-                call.resolve();
+                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+                // Lancé depuis l'activité, au premier plan : certains Android (Xiaomi / HyperOS)
+                // ignorent silencieusement les ouvertures faites depuis un fil d'arrière-plan.
+                final Intent toStart = install;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        getActivity().startActivity(toStart);
+                        call.resolve();
+                    } catch (Exception e) {
+                        call.reject("Impossible d'ouvrir l'installateur", "NO_INSTALLER");
+                    }
+                });
             } catch (Exception e) {
                 call.reject(e.getMessage() != null ? e.getMessage() : "Mise à jour impossible");
             } finally {
