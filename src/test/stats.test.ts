@@ -118,3 +118,20 @@ describe('récompenses', () => {
     expect(earned).not.toContain('books-5');
   });
 });
+
+import { detectGenre } from '@/lib/constants';
+
+describe('détection du genre', () => {
+  it('préfère un genre précis à « Fiction »', () => {
+    expect(detectGenre({ categories: ['Fiction'], description: "Fleuriste fauchée, Nolia doit se marier avec son ex. L'heureux élu : son faux fiancé, milliardaire." })).toBe('Romance');
+    expect(detectGenre({ categories: ['Fiction'], subjects: ['Romans, nouvelles', "Roman d'amour"] })).toBe('Romance');
+    expect(detectGenre({ categories: ['Fiction / Mystery & Detective / General'] })).toBe('Policier');
+    expect(detectGenre({ subjects: ['Roman policier'] })).toBe('Policier');
+    expect(detectGenre({ categories: ['Fiction'], description: 'Un commissaire enquête sur un meurtre.' })).toBe('Policier');
+    expect(detectGenre({ categories: ['Fiction'] })).toBe('Roman');
+    expect(detectGenre({ categories: ['Juvenile Fiction / Fantasy & Magic'] })).toBe('Fantasy');
+  });
+  it('n’invente pas de genre « Art » dans des mots courants', () => {
+    expect(detectGenre({ subjects: ['Heart', 'Party', 'Fiction'] })).toBe('Roman');
+  });
+});

@@ -39,39 +39,44 @@ export const GENRES = [
 
 /** Correspondance des catégories renvoyées par les API (anglais) vers nos genres. */
 const GENRE_MAP: [RegExp, string][] = [
-  [/science fiction|sci-fi|dystop/i, 'Science-fiction'],
-  [/fantasy|magic/i, 'Fantasy'],
-  [/mystery|detective|crime|policier/i, 'Policier'],
-  [/thriller|suspense/i, 'Thriller'],
-  [/romance|love/i, 'Romance'],
-  [/horror|horreur/i, 'Horreur'],
-  [/biograph|autobiograph|memoir/i, 'Biographie'],
-  [/history|histoire/i, 'Histoire'],
+  [/science[- ]fiction|sci-fi|dystop|space opera|cyberpunk/i, 'Science-fiction'],
+  [/romance|love stor|\blove\b|roman d'amour|amour|romantic|new adult|chick lit/i, 'Romance'],
+  [/fantasy|fantasie|fantastique|magic|sword and sorcery|dragons?\b|fées?\b/i, 'Fantasy'],
+  [/mystery|detective|crime|policier|enquête|polar|noir\b/i, 'Policier'],
+  [/thriller|suspense|espionnage/i, 'Thriller'],
+  [/horror|horreur|épouvante/i, 'Horreur'],
+  [/comics|graphic novel|manga|bandes? dessinées?|\bbd\b/i, 'BD & Manga'],
+  [/juvenile|children|young adult|jeunesse|enfants?\b/i, 'Jeunesse'],
+  [/biograph|autobiograph|memoir|mémoires/i, 'Biographie'],
+  [/\bhistory\b|\bhistoire\b|historique/i, 'Histoire'],
   [/philosoph/i, 'Philosophie'],
   [/psycholog/i, 'Psychologie'],
-  [/self-help|personal development|développement/i, 'Développement personnel'],
-  [/business|economics|management|finance/i, 'Business'],
-  [/science|mathemat|physics|biology|nature|technology|computers/i, 'Sciences'],
-  [/poetry|poésie/i, 'Poésie'],
+  [/self-help|personal development|développement personnel|bien-être/i, 'Développement personnel'],
+  [/business|economics|management|finance|économie/i, 'Business'],
+  [/\bsciences?\b|mathemat|physics|biology|nature|technology|computers/i, 'Sciences'],
+  [/poetry|poésie|poèmes/i, 'Poésie'],
   [/drama|théâtre/i, 'Théâtre'],
-  [/comics|graphic novel|manga|bande/i, 'BD & Manga'],
-  [/juvenile|children|young adult|jeunesse/i, 'Jeunesse'],
   [/travel|voyage/i, 'Voyage'],
-  [/cooking|cuisine/i, 'Cuisine'],
-  [/art|music|photography|design/i, 'Art'],
-  [/classic/i, 'Classique'],
-  [/essay|social science|political|religion/i, 'Essai'],
-  [/fiction|roman|novel|literary/i, 'Roman'],
+  [/cooking|cuisine|recettes/i, 'Cuisine'],
+  [/\b(art|arts|music|musique|photography|photographie|design)\b/i, 'Art'],
+  [/classic|classique/i, 'Classique'],
+  [/essay|essai|social science|political|politique|religion/i, 'Essai'],
+  [/fiction|roman|novel|literary|littérature/i, 'Roman'],
 ];
+
+/** Genres trop généraux : on cherche d'abord mieux avant de les retenir. */
+export const GENERIC_GENRES = new Set(['Roman', 'Classique']);
 
 /** Devine un genre d'après un texte libre (résumé, collection), en dernier recours. */
 const TEXT_HINTS: [RegExp, string][] = [
-  [/new romance|dark romance|romantasy|romance|histoire d'amour|tomber amoureu|coup de foudre/i, 'Romance'],
-  [/enquête|enquêteur|inspecteur|commissaire|meurtre|assassinat|détective|polar/i, 'Policier'],
-  [/thriller|suspense|psychopathe|tueur en série/i, 'Thriller'],
-  [/dragon|sorcier|sorcière|magie|royaume|elfe|fée/i, 'Fantasy'],
-  [/vaisseau|planète|galaxie|extraterrestre|futur|robot|intelligence artificielle/i, 'Science-fiction'],
+  [/new romance|dark romance|romantasy|romance|histoire d'amour|tomber amoureu|coup de foudre|faux fiancé|fausse fiancée|mariage arrangé|milliardaire/i, 'Romance'],
+  [/enquête|enquêteur|inspecteur|commissaire|meurtre|assassinat|détective|polar|cadavre/i, 'Policier'],
+  [/thriller|suspense|psychopathe|tueur en série|haletant/i, 'Thriller'],
+  [/dragon|sorcier|sorcière|magie|royaume|elfe|\bfées?\b|prophétie/i, 'Fantasy'],
+  [/vaisseau|planète|galaxie|extraterrestre|robot|intelligence artificielle|dystopie/i, 'Science-fiction'],
   [/horreur|épouvante|fantôme|démon|hanté/i, 'Horreur'],
+  // Indices plus faibles, seulement si rien d'autre n'a été trouvé
+  [/\bamour\b|amoureu|fiancé|séduction|passion/i, 'Romance'],
 ];
 
 export function guessGenreFromText(...texts: (string | undefined)[]): string | undefined {
@@ -79,6 +84,22 @@ export function guessGenreFromText(...texts: (string | undefined)[]): string | u
   if (!t) return undefined;
   for (const [re, g] of TEXT_HINTS) if (re.test(t)) return g;
   return undefined;
+}
+
+/**
+ * Genre le plus précis possible à partir de toutes les informations disponibles :
+ * 1) un genre précis dans les catégories / sujets, 2) des indices dans l'éditeur,
+ * la collection, le titre ou le résumé, 3) en dernier recours un genre général (« Roman »).
+ */
+export function detectGenre(src: { categories?: string[]; subjects?: string[]; description?: string; title?: string; subtitle?: string; publisher?: string; series?: string }): string | undefined {
+  const cats = [...(src.categories ?? []), ...(src.subjects ?? []).slice(0, 50)];
+  for (const c of cats) {
+    const g = mapGenre(c);
+    if (g && !GENERIC_GENRES.has(g)) return g;
+  }
+  const hint = guessGenreFromText(src.publisher, src.series, src.title, src.subtitle, src.description);
+  if (hint) return hint;
+  return mapGenre(cats);
 }
 
 export function mapGenre(categories?: string[] | string): string | undefined {

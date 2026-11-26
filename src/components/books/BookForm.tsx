@@ -134,6 +134,7 @@ export function BookForm({ initial, submitLabel, onSubmit, onCancel, formId = 'b
       seriesIndex: d.series ? d.seriesIndex : undefined,
       shelfIds: v.shelfIds,
       ...(coverTouched ? { coverChecked: true } : {}),
+      ...((d.genre || '') !== (initial.genre ?? '') ? { genreManual: true } : {}),
       subtitle: initial.subtitle,
       language: initial.language,
     });

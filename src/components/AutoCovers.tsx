@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useLibrary } from '@/store/useLibrary';
 import { findCovers, probeImage } from '@/lib/covers';
+import { GENERIC_GENRES, detectGenre } from '@/lib/constants';
+import type { Book } from '@/types';
 
 const PER_RUN = 15;
 const DELAY = 1200;
@@ -92,7 +94,8 @@ export function SpineColors() {
  * sinon indices dans le résumé. Chaque livre n'est traité qu'une fois.
  */
 export function AutoGenres() {
-  const pending = useLibrary((s) => s.books.filter((b) => !b.genre && !b.genreChecked).length);
+  const needs = (b: Book) => !b.genreManual && ((!b.genre && !b.genreChecked) || (!!b.genre && GENERIC_GENRES.has(b.genre) && !b.genreRefined));
+  const pending = useLibrary((s) => s.books.filter(needs).length);
   const running = useRef(false);
 
   useEffect(() => {
@@ -100,27 +103,44 @@ export function AutoGenres() {
     running.current = true;
     let cancelled = false;
     (async () => {
-      const { mapGenre, guessGenreFromText } = await import('@/lib/constants');
-      const queue = useLibrary.getState().books.filter((b) => !b.genre && !b.genreChecked).slice(0, 20);
+      const queue = useLibrary.getState().books.filter(needs).slice(0, 20);
       for (const b of queue) {
         if (cancelled) break;
-        let genre: string | undefined;
+        const categories: string[] = [];
+        const subjects: string[] = [];
+        let description = b.description;
         try {
+          // Google Books : catégories et résumé
           const q = b.isbn ? `isbn:${b.isbn}` : `intitle:${b.title}${b.authors[0] ? ` inauthor:${b.authors[0]}` : ''}`;
           const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`);
           if (res.ok) {
             const data = (await res.json()) as { items?: { volumeInfo: { categories?: string[]; description?: string } }[] };
             for (const it of data.items ?? []) {
-              genre = mapGenre(it.volumeInfo.categories) ?? guessGenreFromText(it.volumeInfo.description);
-              if (genre) break;
+              categories.push(...(it.volumeInfo.categories ?? []));
+              description ??= it.volumeInfo.description;
             }
           }
         } catch {
-          /* hors ligne : on se contente des indices locaux */
+          /* hors ligne */
         }
-        genre ??= guessGenreFromText(b.description, b.subtitle, b.series);
+        try {
+          // Open Library : sujets souvent plus précis (« Roman d'amour », « Roman policier »…)
+          const params = b.isbn ? `isbn=${encodeURIComponent(b.isbn)}` : `title=${encodeURIComponent(b.title)}${b.authors[0] ? `&author=${encodeURIComponent(b.authors[0])}` : ''}`;
+          const res = await fetch(`https://openlibrary.org/search.json?${params}&limit=3&fields=subject`);
+          if (res.ok) {
+            const data = (await res.json()) as { docs?: { subject?: string[] }[] };
+            for (const d of data.docs ?? []) subjects.push(...(d.subject ?? []));
+          }
+        } catch {
+          /* hors ligne */
+        }
+        const genre = detectGenre({ categories, subjects, description, title: b.title, subtitle: b.subtitle, publisher: b.publisher, series: b.series });
         const still = useLibrary.getState().books.find((x) => x.id === b.id);
-        if (still && !still.genre) useLibrary.getState().patchBook(b.id, { genre, genreChecked: true });
+        if (still && !still.genreManual && (still.genre ?? '') === (b.genre ?? '')) {
+          // Un genre général n'est remplacé que par un genre plus précis.
+          const better = genre && (!b.genre || !GENERIC_GENRES.has(genre)) ? genre : b.genre;
+          useLibrary.getState().patchBook(b.id, { genre: better, genreChecked: true, genreRefined: true });
+        }
         await new Promise((r) => setTimeout(r, 900));
       }
       running.current = false;
@@ -129,7 +149,7 @@ export function AutoGenres() {
       cancelled = true;
       running.current = false;
     };
-  }, [pending]);
+  }, [pending]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 }

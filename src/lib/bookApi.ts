@@ -1,4 +1,4 @@
-import { mapGenre } from './constants';
+import { detectGenre } from './constants';
 import { hiResCover } from './covers';
 
 export interface BookSearchResult {
@@ -80,7 +80,7 @@ async function searchGoogle(query: string, signal?: AbortSignal): Promise<BookSe
         publisher: i.publisher,
         publishedYear: i.publishedDate?.slice(0, 4),
         language: i.language,
-        genre: mapGenre(i.categories),
+        genre: detectGenre({ categories: i.categories, description: i.description, title: i.title, subtitle: i.subtitle, publisher: i.publisher }),
       };
     });
 }
@@ -119,7 +119,7 @@ async function searchOpenLibrary(query: string, signal?: AbortSignal): Promise<B
       publisher: d.publisher?.[0],
       publishedYear: d.first_publish_year ? String(d.first_publish_year) : undefined,
       language: d.language?.[0],
-      genre: mapGenre(d.subject?.slice(0, 15)),
+      genre: detectGenre({ subjects: d.subject, title: d.title, subtitle: d.subtitle, publisher: d.publisher?.[0] }),
     }));
 }
 

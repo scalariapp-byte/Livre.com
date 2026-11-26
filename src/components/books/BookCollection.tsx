@@ -269,7 +269,7 @@ export function BookCollection({ books, storageKey, sorts: sortsProp, defaultSor
             onReorder={setOrder}
             crossSection={groupable && group === 'genre'}
             onSectionChange={(id, key) => {
-              patchBook(id, { genre: key === 'Sans genre' ? undefined : key, genreChecked: true });
+              patchBook(id, { genre: key === 'Sans genre' ? undefined : key, genreChecked: true, genreManual: true });
               toast.success(key === 'Sans genre' ? 'Genre retiré' : `Rangé dans « ${key} »`);
             }}
           />

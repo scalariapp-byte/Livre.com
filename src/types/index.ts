@@ -39,6 +39,10 @@ export interface Book {
   coverChecked?: boolean;
   /** La recherche automatique du genre a déjà été tentée. */
   genreChecked?: boolean;
+  /** Genre choisi par l'utilisateur : jamais modifié automatiquement. */
+  genreManual?: boolean;
+  /** Un genre général (« Roman ») a déjà été revérifié. */
+  genreRefined?: boolean;
   /** Couleur de tranche extraite de la couverture, et couverture analysée. */
   spineColor?: string;
   /** Position choisie par l'utilisateur sur l'étagère (tri « Mon rangement »). */
