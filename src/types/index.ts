@@ -159,6 +159,15 @@ export interface RoomState {
   sky?: string;
 }
 
+/** Compagnon de lecture (animal virtuel). */
+export interface PetState {
+  species: string;
+  name: string;
+  head?: string;
+  side?: string;
+  adoptedAt: string;
+}
+
 export interface LibraryData {
   version: number;
   books: Book[];
@@ -167,6 +176,7 @@ export interface LibraryData {
   loans: Loan[];
   shelves: Shelf[];
   room: RoomState;
+  pet?: PetState;
   /** Badges obtenus (identifiant → date d'obtention). */
   badges: Record<string, string>;
   settings: Settings;

@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/Toast';
 import { BADGES, DECOR, badgeStates, computeMetrics, nextDecor } from '@/lib/rewards';
 import { diffDays, isoToDayKey } from '@/lib/dates';
 import { formatMinutes, hashString } from '@/lib/utils';
+import { speciesOf } from '@/lib/pet';
 
 const CONFETTI = ['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f472b6'];
 
@@ -52,6 +53,8 @@ export function Celebration() {
   const books = useLibrary((s) => s.books);
   const sessions = useLibrary((s) => s.sessions);
   const navigate = useNavigate();
+  const pet = useLibrary((s) => s.pet);
+  const petEmoji = speciesOf(pet?.species).emoji;
 
   const finishedCount = books.filter((b) => b.status === 'finished').length;
   const newDecor = DECOR.find((d) => d.unlockAt === finishedCount);
@@ -98,7 +101,7 @@ export function Celebration() {
               animate={{ x: ['-260%', '-170%', '-110%', '-50%'], y: [0, -40, 0, -26, 0] }}
               transition={{ duration: 1.3, delay: 0.5, ease: 'easeOut' }}
             >
-              🐈
+              {petEmoji}
             </motion.div>
             <motion.div
               className="absolute left-1/2 top-2 ml-9 rounded-2xl bg-accent px-3 py-1.5 text-sm font-bold text-accent-ink shadow-lift"
@@ -106,7 +109,7 @@ export function Celebration() {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 1.8, type: 'spring', bounce: 0.5 }}
             >
-              Bravo ! 🎉
+              {pet ? `${pet.name} : bravo !` : 'Bravo ! 🎉'}
             </motion.div>
 
             <div className="mb-4 flex justify-center">

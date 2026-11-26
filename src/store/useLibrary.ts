@@ -12,6 +12,7 @@ import type {
   Reflection,
   Settings,
   Shelf,
+  PetState,
 } from '@/types';
 import { uid } from '@/lib/utils';
 import { isoToDayKey, toDayKey } from '@/lib/dates';
@@ -58,6 +59,7 @@ interface Actions {
   setSky: (sky: string) => void;
   resetRoom: () => void;
   unlockBadges: (ids: string[]) => void;
+  setPet: (patch: Partial<PetState>) => void;
   addShelf: (name: string, emoji?: string) => string;
   updateShelf: (id: string, patch: Partial<Pick<Shelf, 'name' | 'emoji'>>) => void;
   deleteShelf: (id: string) => void;
@@ -288,6 +290,8 @@ export const useLibrary = create<LibraryState>()(
         }),
       setSky: (sky) => set((s) => ({ room: { ...s.room, sky } })),
       resetRoom: () => set((s) => ({ room: { placements: {}, sky: s.room.sky } })),
+      setPet: (patch) =>
+        set((s) => ({ pet: { species: 'cat', name: 'Moka', adoptedAt: now(), ...s.pet, ...patch } })),
       unlockBadges: (ids) =>
         set((s) => {
           const at = now();
@@ -379,12 +383,12 @@ export const useLibrary = create<LibraryState>()(
       markNotified: (ids) => set((s) => ({ notifiedAlerts: [...new Set([...s.notifiedAlerts, ...ids])].slice(-500) })),
 
       exportBackup: () => {
-        const { books, sessions, plans, loans, shelves, room, badges, settings } = get();
+        const { books, sessions, plans, loans, shelves, room, badges, pet, settings } = get();
         return {
           app: 'livre',
           version: DATA_VERSION,
           exportedAt: now(),
-          data: { books, sessions, plans, loans, shelves, room, badges, settings },
+          data: { books, sessions, plans, loans, shelves, room, badges, pet, settings },
         };
       },
 
@@ -399,6 +403,7 @@ export const useLibrary = create<LibraryState>()(
             shelves: d.shelves,
             room: d.room,
             badges: d.badges,
+            pet: d.pet,
             settings: { ...s.settings, ...d.settings, onboarded: true },
             timer: null,
             dismissedAlerts: [],

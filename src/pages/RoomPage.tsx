@@ -10,6 +10,8 @@ import { useLibrary } from '@/store/useLibrary';
 import { BADGES, DECOR, SKIES, badgeStates, computeMetrics, nextDecor, type DecorItem } from '@/lib/rewards';
 import { fmtShort } from '@/lib/dates';
 import { cn, formatMinutes } from '@/lib/utils';
+import { useSearchParams } from 'react-router-dom';
+import { PetTab } from './PetTab';
 
 const IDLE: Record<NonNullable<DecorItem['idle']>, TargetAndTransition> = {
   bob: { y: [0, -4, 0], transition: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } },
@@ -276,7 +278,9 @@ function BadgesTab() {
 }
 
 export function RoomPage() {
-  const [tab, setTab] = useState<'decor' | 'badges'>('decor');
+  const [params, setParams] = useSearchParams();
+  const tab = (params.get('tab') as 'pet' | 'decor' | 'badges') || 'pet';
+  const setTab = (t: 'pet' | 'decor' | 'badges') => setParams(t === 'pet' ? {} : { tab: t }, { replace: true });
   return (
     <>
       <PageHeader title="Mon coin lecture" subtitle="Chaque livre terminé fait grandir ton petit monde" />
@@ -286,11 +290,12 @@ export function RoomPage() {
           onChange={setTab}
           className="mb-5 w-full sm:w-auto"
           options={[
-            { value: 'decor', label: '🏡 Mon décor' },
+            { value: 'pet', label: '🐾 Compagnon' },
+            { value: 'decor', label: '🏡 Décor' },
             { value: 'badges', label: '🏅 Badges' },
           ]}
         />
-        {tab === 'decor' ? <DecorTab /> : <BadgesTab />}
+        {tab === 'pet' ? <PetTab /> : tab === 'decor' ? <DecorTab /> : <BadgesTab />}
       </PageBody>
     </>
   );

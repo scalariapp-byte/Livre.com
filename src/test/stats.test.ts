@@ -135,3 +135,25 @@ describe('détection du genre', () => {
     expect(detectGenre({ subjects: ['Heart', 'Party', 'Fiction'] })).toBe('Roman');
   });
 });
+
+import { levelFor, moodFor, stageFor } from '@/lib/pet';
+
+describe('compagnon', () => {
+  it('monte de niveau avec l’expérience', () => {
+    expect(levelFor(0).level).toBe(1);
+    expect(levelFor(49).level).toBe(1);
+    expect(levelFor(50).level).toBe(2);
+    expect(levelFor(200).level).toBe(3);
+    expect(levelFor(125)).toMatchObject({ level: 2, into: 75, needed: 150, progress: 50 });
+    expect(stageFor(1).name).toBe('Bébé');
+    expect(stageFor(10).name).toBe('Sage');
+  });
+  it('adapte son humeur à la lecture récente', () => {
+    const s = (date: string) => ({ id: date, bookId: 'b', date, pagesRead: 5, minutes: 0, createdAt: '' });
+    expect(moodFor([], '2026-11-26')).toBe('new');
+    expect(moodFor([s('2026-11-26')], '2026-11-26')).toBe('joyful');
+    expect(moodFor([s('2026-11-25')], '2026-11-26')).toBe('happy');
+    expect(moodFor([s('2026-11-23')], '2026-11-26')).toBe('bored');
+    expect(moodFor([s('2026-11-10')], '2026-11-26')).toBe('sleepy');
+  });
+});
