@@ -1,7 +1,7 @@
-import { BarChart3, BookCheck, BookmarkPlus, CalendarDays, FolderHeart, Gift, Home, Library, Repeat2, Settings } from 'lucide-react';
+import { BarChart3, BookCheck, BookOpen, BookmarkPlus, CalendarDays, FolderHeart, Gift, Library, Repeat2, Settings } from 'lucide-react';
 
 export const NAV = [
-  { to: '/', label: 'Accueil', icon: Home },
+  { to: '/', label: 'Accueil', icon: BookOpen },
   { to: '/library', label: 'Ma bibliothèque', short: 'Biblio', icon: Library },
   { to: '/to-read', label: 'À lire', icon: BookmarkPlus },
   { to: '/wishlist', label: 'Liste de souhaits', short: 'Souhaits', icon: Gift },
